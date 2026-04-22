@@ -95,6 +95,10 @@ function resolveLauncherMetadata(): LauncherMetadata {
     };
 }
 
+function toPowerShellSingleQuotedString(value: string): string {
+    return `'${value.replaceAll("'", "''")}'`;
+}
+
 async function findPrimaryPackagedExecutable(appOutDir: string): Promise<string | null> {
     const { productName } = resolveLauncherMetadata();
     const preferredExecutablePath = path.join(appOutDir, `${productName}.exe`);
@@ -238,8 +242,11 @@ async function createLayeredWindowsZip(unpackedDirectory: string): Promise<strin
     const targetArch = resolveWindowsTargetArch();
     const zipFileName = `${productName}-${version}-win-${targetArch}.zip`;
     const zipFilePath = path.join(path.dirname(unpackedDirectory), zipFileName);
+    const sourceDirectoryArgument = toPowerShellSingleQuotedString(unpackedDirectory);
+    const destinationZipArgument = toPowerShellSingleQuotedString(zipFilePath);
     const zipScript = [
-        'param([string]$SourceDirectory, [string]$DestinationZip)',
+        `$SourceDirectory = ${sourceDirectoryArgument}`,
+        `$DestinationZip = ${destinationZipArgument}`,
         'Add-Type -AssemblyName System.IO.Compression.FileSystem',
         'if (Test-Path -LiteralPath $DestinationZip) {',
         '    Remove-Item -LiteralPath $DestinationZip -Force',
@@ -257,9 +264,7 @@ async function createLayeredWindowsZip(unpackedDirectory: string): Promise<strin
             '-NoLogo',
             '-NoProfile',
             '-Command',
-            zipScript,
-            unpackedDirectory,
-            zipFilePath
+            zipScript
         ],
         {
             cwd: process.cwd(),
