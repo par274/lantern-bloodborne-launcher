@@ -40,6 +40,7 @@ Now only support languages are English and Turkish.
 ## Build
 
 * Run `git clone https://github.com/par274/lantern-bloodborne-launcher.git`
+* Rename `.env.example` to `.env` file
 * Then run command: `npm install`
 * Open VSCode, `Terminal > Run Task`
 * Select Dev, Start or Build.
@@ -51,6 +52,8 @@ LanternLauncher is simply a launcher; it allows you to easily configure emulator
 This project does not contain any copyrighted system firmware, game data, or proprietary PlayStation or FromSoftware assets. The entire design and backend were written from scratch and are original.
 
 ## Used technologies
+
+This is the application framework I use for my projects; it supports Electron, Web, and Mobile, but this particular project doesn't require those platforms.
 
 * Electron
 * Svelte
