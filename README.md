@@ -53,7 +53,7 @@ This project does not contain any copyrighted system firmware, game data, or pro
 
 ## Used technologies
 
-This is the application framework I use for my projects; it supports Electron, Web, and Mobile, but this particular project doesn't require those platforms.
+This project uses a shared application framework that supports Electron, Web, and Mobile. Only the Electron target is used here; other platform-specific code is not relevant for this project.
 
 * Electron
 * Svelte
