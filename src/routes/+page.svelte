@@ -17,6 +17,7 @@
 		isMenuSubtree,
 		resolveMenuBranch
 	} from '$lib/components/AppMenu.svelte';
+	import ConfirmDialog, { type ConfirmDialogController } from '$lib/components/ConfirmDialog.svelte';
 	import Shadps4Modal, { type Shadps4ModalController } from '$lib/components/emulator/Shadps4Modal.svelte';
 	import InputPrompts from '$lib/components/InputPrompts.svelte';
 	import PatchModal, { type PatchModalController } from '$lib/components/patches/PatchModal.svelte';
@@ -53,8 +54,10 @@
 	let isIntroOverlayFading = $state(false);
 	let isPatchModalOpen = $state(false);
 	let isShadps4ModalOpen = $state(false);
+	let isShaderCacheConfirmOpen = $state(false);
 	let patchModal = $state<PatchModalController | undefined>(undefined);
 	let shadps4Modal = $state<Shadps4ModalController | undefined>(undefined);
+	let shaderCacheConfirmDialog = $state<ConfirmDialogController | undefined>(undefined);
 	let graphicsMenuState = $state(createDefaultGraphicsMenuState());
 	let generalSettings = $state(createDefaultGeneralSettings());
 	let trophyKeyInputValue = $state('');
@@ -80,7 +83,7 @@
 				applySettings: applyGeneralSettings,
 				setTrophyKeyInputValue,
 				submitTrophyKey,
-				deleteShaderCache,
+				requestShaderCacheDelete,
 				shaderCacheDeleteProgress,
 				shaderCacheDeleteStatusKey
 			}),
@@ -297,6 +300,11 @@
 	}
 
 	function moveUp() {
+		if (isShaderCacheConfirmOpen) {
+			shaderCacheConfirmDialog?.moveUp();
+			return;
+		}
+
 		if (isPatchModalOpen) {
 			patchModal?.moveUp();
 			return;
@@ -326,6 +334,11 @@
 	}
 
 	function moveDown() {
+		if (isShaderCacheConfirmOpen) {
+			shaderCacheConfirmDialog?.moveDown();
+			return;
+		}
+
 		if (isPatchModalOpen) {
 			patchModal?.moveDown();
 			return;
@@ -355,6 +368,11 @@
 	}
 
 	function moveLeft() {
+		if (isShaderCacheConfirmOpen) {
+			shaderCacheConfirmDialog?.moveLeft();
+			return;
+		}
+
 		if (isPatchModalOpen) {
 			patchModal?.moveLeft();
 			return;
@@ -381,6 +399,11 @@
 	}
 
 	function moveRight() {
+		if (isShaderCacheConfirmOpen) {
+			shaderCacheConfirmDialog?.moveRight();
+			return;
+		}
+
 		if (isPatchModalOpen) {
 			patchModal?.moveRight();
 			return;
@@ -440,6 +463,20 @@
 
 	function closeShadps4Modal() {
 		isShadps4ModalOpen = false;
+	}
+
+	function requestShaderCacheDelete() {
+		closeDropdown();
+		isShaderCacheConfirmOpen = true;
+	}
+
+	function closeShaderCacheConfirmDialog() {
+		isShaderCacheConfirmOpen = false;
+	}
+
+	function confirmShaderCacheDelete() {
+		closeShaderCacheConfirmDialog();
+		void deleteShaderCache();
 	}
 
 	async function updateShadps4() {
@@ -705,6 +742,11 @@
 	}
 
 	function enterSelected(targetIndex = selected) {
+		if (isShaderCacheConfirmOpen) {
+			shaderCacheConfirmDialog?.enterSelected();
+			return;
+		}
+
 		if (isPatchModalOpen) {
 			patchModal?.enterSelected();
 			return;
@@ -752,6 +794,11 @@
 	}
 
 	function goBack() {
+		if (isShaderCacheConfirmOpen) {
+			shaderCacheConfirmDialog?.goBack();
+			return;
+		}
+
 		if (isPatchModalOpen) {
 			patchModal?.goBack();
 			return;
@@ -926,6 +973,11 @@
 			enterSelected: () => enterSelected(),
 			goBack,
 			deleteText: () => {
+				if (isShaderCacheConfirmOpen) {
+					shaderCacheConfirmDialog?.goBack();
+					return;
+				}
+
 				if (activeInputDropdown) {
 					activeInputDropdown.onInput(activeInputDropdown.value.slice(0, -1));
 					return;
@@ -936,6 +988,11 @@
 				}
 			},
 			confirmText: () => {
+				if (isShaderCacheConfirmOpen) {
+					shaderCacheConfirmDialog?.enterSelected();
+					return;
+				}
+
 				if (activeInputDropdown) {
 					void pasteClipboardIntoTrophyKey();
 					return;
@@ -1077,6 +1134,21 @@
 				shadps4={launcherBootstrapState?.emulator.shadps4 ?? null}
 				onClose={closeShadps4Modal}
 				onUpdate={updateShadps4}
+				{playEnterSound}
+			/>
+		{/if}
+
+		{#if isShaderCacheConfirmOpen}
+			<ConfirmDialog
+				bind:this={shaderCacheConfirmDialog}
+				titleKey="generalSettings.shaderCache.confirmTitle"
+				messageKey="generalSettings.shaderCache.confirmMessage"
+				inputMode={gamepad.inputMode}
+				isXboxControllerConnected={gamepad.isXboxControllerConnected}
+				isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
+				onConfirm={confirmShaderCacheDelete}
+				onCancel={closeShaderCacheConfirmDialog}
+				{playSelectSound}
 				{playEnterSound}
 			/>
 		{/if}

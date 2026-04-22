@@ -11,7 +11,7 @@ type GeneralMenuOptions = {
 	applySettings: (update: GeneralSettingsUpdate) => void | Promise<void>;
 	setTrophyKeyInputValue: (value: string) => void | Promise<void>;
 	submitTrophyKey: () => void | Promise<void>;
-	deleteShaderCache: () => void | Promise<void>;
+	requestShaderCacheDelete: () => void | Promise<void>;
 	shaderCacheDeleteProgress?: number | null;
 	shaderCacheDeleteStatusKey?: TranslationKey | null;
 };
@@ -122,7 +122,7 @@ export function createGeneralMenuTree({
 	applySettings,
 	setTrophyKeyInputValue,
 	submitTrophyKey,
-	deleteShaderCache,
+	requestShaderCacheDelete,
 	shaderCacheDeleteProgress = null,
 	shaderCacheDeleteStatusKey = null
 }: GeneralMenuOptions): readonly MenuNode[] {
@@ -204,19 +204,10 @@ export function createGeneralMenuTree({
 				shaderCacheDeleteProgress === null
 					? null
 					: {
-							value: shaderCacheDeleteProgress,
-							labelKey: shaderCacheDeleteStatusKey
-						},
-			dropdown: [
-				{
-					labelKey: 'menu.state.confirmDelete',
-					action: deleteShaderCache
-				},
-				{
-					labelKey: 'menu.state.cancel',
-					action: () => {}
-				}
-			]
+						value: shaderCacheDeleteProgress,
+						labelKey: shaderCacheDeleteStatusKey
+					},
+			action: requestShaderCacheDelete
 		}
 	];
 }

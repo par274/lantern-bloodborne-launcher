@@ -236,7 +236,10 @@ export const enTree = {
             description: 'Sets the volume percentage for the Bloodborne custom config. Maximum is 200, default is 100.'
         },
         shaderCache: {
-            description: 'Deletes the contents of the shadPS4 cache folder. Shaders may be rebuilt on the next launch.'
+            description: 'Deletes the contents of the shadPS4 cache folder. Shaders may be rebuilt on the next launch.',
+            confirmTitle: 'Delete shader cache?',
+            confirmMessage:
+                'This will clear the shadPS4 shader cache folder. The game may rebuild shaders on the next launch, which can cause brief stutter during the first few minutes.'
         },
         units: {
             duration: 'ms'

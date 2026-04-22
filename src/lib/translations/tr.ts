@@ -232,10 +232,13 @@ export const trTree = {
         },
         volume: {
             label: 'Ses Düzeyi',
-            description: 'Bloodborne için ses düzeyini belirler. En yüksek değer 200, varsayılan değer ise 100’dür.'
+            description: 'Bloodborne için ses düzeyini belirler. En yüksek değer 200, varsayılan değer ise 100\'dür.'
         },
         shaderCache: {
-            description: 'Shader önbelleği klasörünün içeriğini siler. Sonraki açılışta shader’lar yeniden oluşturulabilir.'
+            description: 'Shader önbelleği klasörünün içeriğini siler. Sonraki açılışta shader\'lar yeniden oluşturulabilir.',
+            confirmTitle: 'Shader cache silinsin mi?',
+            confirmMessage:
+                'Bu işlem shadPS4 shader cache klasörünü temizler. Oyun bir sonraki açılışta shader\'ları yeniden oluşturabilir ve ilk dakikalarda kısa takılmalar yaşanabilir.'
         },
         units: {
             duration: 'ms'
@@ -302,12 +305,12 @@ export const trTree = {
             name: 'Girişi atla'
         },
         performance: {
-            name: 'Performans patch’i',
+            name: 'Performans patch\'i',
             note: 'Daha iyi performans için oyunun bazı debug parametrelerini değiştirir. Bazı görseller etkilenebilir.'
         },
         'disable-motion-blur': {
             name: 'Motion blur kapat',
-            note: 'Motion blur bileşenini devre dışı bırakır. Velomap render’ını da kapattığı için performans artışı sağlayabilir.'
+            note: 'Motion blur bileşenini devre dışı bırakır. Velomap render\'ını da kapattığı için performans artışı sağlayabilir.'
         },
         'disable-dynamic-light-shadows': {
             name: 'Dinamik ışık gölgelerini kapat',
@@ -354,7 +357,7 @@ export const trTree = {
         },
         'increased-graphics-heap-sizes': {
             name: 'Graphics heap boyutlarını artır',
-            note: 'Grafik heap boyutunu artırarak daha fazla bellek kullanılmasına izin verir. Increased DMEM ile birlikte kullanılmalıdır. 1080p üstü çözünürlük patch’lerinde bu zaten bulunabilir.'
+            note: 'Grafik heap boyutunu artırarak daha fazla bellek kullanılmasına izin verir. Increased DMEM ile birlikte kullanılmalıdır. 1080p üstü çözünürlük patch\'lerinde bu zaten bulunabilir.'
         },
         'intel-12th-gen-sfx-workaround': {
             name: 'Intel 12. nesil ve üzeri SFX çözümü',
@@ -397,7 +400,7 @@ export const trTree = {
         },
         'restore-debug-menu': {
             name: 'Debug menüyü geri getir',
-            note: 'Bu patch, debug font dosyaları gerektirir. Dosyalar yoksa çökme yaşanabilir. Menüye touchpad’in sol tarafıyla erişilir.'
+            note: 'Bu patch, debug font dosyaları gerektirir. Dosyalar yoksa çökme yaşanabilir. Menüye touchpad\'in sol tarafıyla erişilir.'
         },
         'disable-camera-auto-rotation': {
             name: 'Hareketle kameranın otomatik dönmesini kapat',
@@ -417,7 +420,7 @@ export const trTree = {
         },
         'player-no-dead': {
             name: 'Oyuncu ölmez',
-            note: 'Hasar alırsınız ancak canınız 1 HP’nin altına düşmez.'
+            note: 'Hasar alırsınız ancak canınız 1 HP\'nin altına düşmez.'
         },
         'player-stealth': {
             name: 'Oyuncu gizli',
@@ -444,87 +447,87 @@ export const trTree = {
         },
         'light-grid-1280x800-steamdeck': {
             name: '1280x800 SteamDeck light grid',
-            note: 'Light grid draw call sayısını azaltarak performansı artırır. Render çözünürlüğü patch’i değildir; pencere veya tam ekran çözünürlüğünüzle eşleşen sürümü kullanın.'
+            note: 'Light grid draw call sayısını azaltarak performansı artırır. Render çözünürlüğü patch\'i değildir; pencere veya tam ekran çözünürlüğünüzle eşleşen sürümü kullanın.'
         },
         'light-grid-1080p': {
             name: '1080p light grid',
-            note: 'Light grid draw call sayısını azaltarak performansı artırır. Render çözünürlüğü patch’i değildir; pencere veya tam ekran çözünürlüğünüzle eşleşen sürümü kullanın. 1080p light grid, performans patch’inin içinde de bulunur.'
+            note: 'Light grid draw call sayısını azaltarak performansı artırır. Render çözünürlüğü patch\'i değildir; pencere veya tam ekran çözünürlüğünüzle eşleşen sürümü kullanın. 1080p light grid, performans patch\'inin içinde de bulunur.'
         },
         'light-grid-1440p': {
             name: '1440p light grid',
-            note: 'Light grid draw call sayısını azaltarak performansı artırır. Render çözünürlüğü patch’i değildir; pencere veya tam ekran çözünürlüğünüzle eşleşen sürümü kullanın.'
+            note: 'Light grid draw call sayısını azaltarak performansı artırır. Render çözünürlüğü patch\'i değildir; pencere veya tam ekran çözünürlüğünüzle eşleşen sürümü kullanın.'
         },
         'light-grid-4k': {
             name: '4K light grid',
-            note: 'Light grid draw call sayısını azaltarak performansı artırır. Render çözünürlüğü patch’i değildir; pencere veya tam ekran çözünürlüğünüzle eşleşen sürümü kullanın.'
+            note: 'Light grid draw call sayısını azaltarak performansı artırır. Render çözünürlüğü patch\'i değildir; pencere veya tam ekran çözünürlüğünüzle eşleşen sürümü kullanın.'
         },
         'optimal-1080p': {
             name: 'Optimal 1080p',
-            note: 'Global 360p, ana render’lar 1080p olacak şekilde ayarlanır.'
+            note: 'Global 360p, ana render\'lar 1080p olacak şekilde ayarlanır.'
         },
         'resolution-640x360-16-9': {
             name: 'Çözünürlük 640x360 16:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 640x360 çözünürlük patch’i.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 640x360 çözünürlük patch\'i.'
         },
         'resolution-960x540-16-9': {
             name: 'Çözünürlük 960x540 16:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 960x540 çözünürlük patch’i.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 960x540 çözünürlük patch\'i.'
         },
         'resolution-1280x720-16-9': {
             name: 'Çözünürlük 1280x720 16:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1280x720 çözünürlük patch’i.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1280x720 çözünürlük patch\'i.'
         },
         'resolution-1440x810-16-9': {
             name: 'Çözünürlük 1440x810 16:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1440x810 çözünürlük patch’i.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1440x810 çözünürlük patch\'i.'
         },
         'resolution-1600x900-16-9': {
             name: 'Çözünürlük 1600x900 16:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1600x900 çözünürlük patch’i.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1600x900 çözünürlük patch\'i.'
         },
         'resolution-2560x1440-16-9': {
             name: 'Çözünürlük 2560x1440 16:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 2560x1440 çözünürlük patch’i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 2560x1440 çözünürlük patch\'i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
         },
         'resolution-3840x2160-16-9': {
             name: 'Çözünürlük 3840x2160 16:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 3840x2160 çözünürlük patch’i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 3840x2160 çözünürlük patch\'i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
         },
         'resolution-1280x800-16-10': {
             name: 'Çözünürlük 1280x800 16:10',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1280x800 çözünürlük patch’i.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1280x800 çözünürlük patch\'i.'
         },
         'resolution-1920x1200-16-10': {
             name: 'Çözünürlük 1920x1200 16:10',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1920x1200 çözünürlük patch’i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1920x1200 çözünürlük patch\'i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
         },
         'resolution-2560x1600-16-10': {
             name: 'Çözünürlük 2560x1600 16:10',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 2560x1600 çözünürlük patch’i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 2560x1600 çözünürlük patch\'i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
         },
         'resolution-2560x1080-21-9': {
             name: 'Çözünürlük 2560x1080 21:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 2560x1080 çözünürlük patch’i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 2560x1080 çözünürlük patch\'i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
         },
         'resolution-3440x1440-21-9': {
             name: 'Çözünürlük 3440x1440 21:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 3440x1440 çözünürlük patch’i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 3440x1440 çözünürlük patch\'i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
         },
         'resolution-5120x2160-21-9': {
             name: 'Çözünürlük 5120x2160 21:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 5120x2160 çözünürlük patch’i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 5120x2160 çözünürlük patch\'i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
         },
         'resolution-3840x1080-32-9': {
             name: 'Çözünürlük 3840x1080 32:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 3840x1080 çözünürlük patch’i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 3840x1080 çözünürlük patch\'i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
         },
         'resolution-5180x1440-32-9': {
             name: 'Çözünürlük 5180x1440 32:9',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 5180x1440 çözünürlük patch’i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 5180x1440 çözünürlük patch\'i. Oyun özel ayarlarında DMEM değerini yaklaşık +8000 MB artırmayı unutmayın.'
         },
         'resolution-1280x960-4-3': {
             name: 'Çözünürlük 1280x960 4:3',
-            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1280x960 çözünürlük patch’i.'
+            note: 'Lock-on, düşman ve dost can barı koordinatları düzeltilmiş 1280x960 çözünürlük patch\'i.'
         }
     },
     prompt: {
