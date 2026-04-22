@@ -11,7 +11,7 @@ An alternative to BB_Launcher that allows you to control Bloodborne fully intera
 
 ## Features
 
-* Borderless console-like UI
+* Borderless console-like GPU accelerated UI
 * Fully designed for controllers (Xbox 360/One & DualSense) and keyboard & mouse
 * Bundled graphics settings
 * Auto ShadPS4 downloader, updater
