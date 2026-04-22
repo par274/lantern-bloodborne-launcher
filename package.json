@@ -1,0 +1,48 @@
+{
+    "name": "lantern-bloodborne-launcher",
+    "version": "0.0.1",
+    "productName": "LanternLauncher",
+    "description": "LanternLauncher for Bloodborne shadPS4 emu.",
+    "author": "par274",
+    "copyright": "Copyright (c) 2026 par274",
+    "license": "GPL-2.0",
+    "homepage": "https://github.com/par274/lantern-bloodborne-launcher",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/par274/lantern-bloodborne-launcher.git"
+    },
+    "main": ".build/dist/electron/main.js",
+    "type": "module",
+    "engines": {
+        "node": ">=20.0.0"
+    },
+    "scripts": {
+        "dev": "vite",
+        "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+        "typecheck": "npm run check",
+        "build": "npm run check && vite build",
+        "start": "npm run build && electron .",
+        "dist:portable": "npm run build && electron-builder --config .build/dist/electron/config.cjs --dir",
+        "dist:installer": "npm run build && electron-builder --config .build/dist/electron/config.cjs",
+        "dist:ci": "npm run build && electron-builder --config .build/dist/electron/config.cjs",
+        "clean": "rimraf .svelte-kit .build"
+    },
+    "devDependencies": {
+        "@sveltejs/adapter-node": "^5.5.4",
+        "@sveltejs/adapter-static": "^3.0.10",
+        "@sveltejs/kit": "^2.55.0",
+        "@sveltejs/vite-plugin-svelte": "^7.0.0",
+        "@tailwindcss/vite": "^4.2.2",
+        "@types/node": "^24.6.1",
+        "dotenv": "^17.3.1",
+        "electron": "^41.0.3",
+        "electron-builder": "^26.8.1",
+        "rimraf": "^6.0.1",
+        "svelte": "^5.54.1",
+        "svelte-check": "^4.4.5",
+        "tailwindcss": "^4.2.2",
+        "typescript": "^5.9.3",
+        "vite": "^8.0.1",
+        "vite-plugin-electron": "^0.29.1"
+    }
+}

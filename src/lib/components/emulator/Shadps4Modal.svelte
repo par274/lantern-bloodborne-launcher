@@ -1,0 +1,322 @@
+<script module lang="ts">
+	export type Shadps4ModalController = {
+		enterSelected: () => void;
+		goBack: () => void;
+		confirmText: () => void;
+		moveUp: () => void;
+		moveDown: () => void;
+		moveLeft: () => void;
+		moveRight: () => void;
+		deleteText: () => void;
+	};
+</script>
+
+<script lang="ts">
+	import { PLATFORM_COMMANDS } from '$lib/contracts/commands';
+	import type { Shadps4InstallStatus } from '$lib/contracts/launcherConfig';
+	import { t } from '$lib/i18n';
+	import type { TranslationKey } from '$lib/translations/translations';
+	import { platformApi } from '$platform/renderer/api';
+
+	import InputPrompts from '$lib/components/InputPrompts.svelte';
+	import type { InputMode } from '$lib/components/gamepad';
+
+	type UpdateStatus = 'idle' | 'checking' | 'complete' | 'failed';
+
+	type Props = {
+		inputMode: InputMode;
+		isXboxControllerConnected: boolean;
+		isDualSenseControllerConnected: boolean;
+		shadps4: Shadps4InstallStatus | null;
+		onClose: () => void;
+		onUpdate: () => Promise<void> | void;
+		playEnterSound: () => void;
+	};
+
+	const SHADPS4_GITHUB_URL = 'https://github.com/shadps4-emu/shadPS4';
+	const SHADPS4_GITHUB_MAIN_URL = `${SHADPS4_GITHUB_URL}/tree/main`;
+
+	let { inputMode, isXboxControllerConnected, isDualSenseControllerConnected, shadps4, onClose, onUpdate, playEnterSound }: Props =
+		$props();
+
+	let updateStatus = $state<UpdateStatus>('idle');
+	let isUpdating = $state(false);
+	let updateProgress = $state<number | null>(null);
+
+	let isControllerInputActive = $derived(inputMode !== 'keyboard' && (isXboxControllerConnected || isDualSenseControllerConnected));
+	let commit = $derived(resolveCommit(shadps4?.version ?? null));
+	let statusKey = $derived(resolveAvailabilityStatusKey(shadps4));
+	let updateStatusKey = $derived(resolveUpdateStatusKey());
+
+	function resolveCommit(version: string | null): string | null {
+		const matches = version?.match(/[a-f0-9]{7,40}/gi);
+		return matches?.at(-1)?.slice(0, 12) ?? null;
+	}
+
+	function resolveAvailabilityStatusKey(status: Shadps4InstallStatus | null): TranslationKey {
+		if (!status) {
+			return 'emulator.status.unavailable';
+		}
+
+		if (status.isAvailable) {
+			return 'emulator.status.available';
+		}
+
+		return 'emulator.status.missing';
+	}
+
+	function resolveUpdateStatusKey(): TranslationKey | null {
+		switch (updateStatus) {
+			case 'checking':
+				return 'emulator.update.checking';
+			case 'complete':
+				return 'emulator.update.complete';
+			case 'failed':
+				return 'emulator.update.failed';
+			default:
+				return null;
+		}
+	}
+
+	async function updateShadps4() {
+		if (isUpdating) {
+			return;
+		}
+
+		playEnterSound();
+		isUpdating = true;
+		updateStatus = 'checking';
+		updateProgress = 0;
+
+		const progressInterval = window.setInterval(() => {
+			void refreshProgress();
+		}, 120);
+
+		try {
+			await onUpdate();
+			await refreshProgress();
+			updateProgress = 100;
+			updateStatus = 'complete';
+		} catch (error) {
+			console.warn('shadPS4 update failed.', error);
+			updateStatus = 'failed';
+		} finally {
+			window.clearInterval(progressInterval);
+			isUpdating = false;
+		}
+	}
+
+	async function refreshProgress() {
+		if (!platformApi.isAvailable) {
+			return;
+		}
+
+		try {
+			const status = await platformApi.invoke(PLATFORM_COMMANDS.GET_SPLASH_STATUS, undefined);
+			updateProgress = status.progress;
+		} catch (error) {
+			console.warn('shadPS4 update progress could not be loaded.', error);
+		}
+	}
+
+	function close() {
+		playEnterSound();
+		onClose();
+	}
+
+	export function enterSelected() {
+		void updateShadps4();
+	}
+
+	export function confirmText() {
+		void updateShadps4();
+	}
+
+	export function goBack() {
+		close();
+	}
+
+	export function moveUp() {}
+	export function moveDown() {}
+	export function moveLeft() {}
+	export function moveRight() {}
+	export function deleteText() {}
+</script>
+
+<div class="fixed inset-0 z-[24] flex items-center justify-center bg-black/35 px-5 py-8 backdrop-blur-[2px]">
+	<section
+		class="relative w-[min(84vw,680px)] overflow-hidden rounded-[30px] border border-[#d0b875]/16 bg-[radial-gradient(circle_at_18%_0%,rgba(202,181,120,0.13),transparent_42%),linear-gradient(180deg,rgba(18,13,10,0.9),rgba(6,5,4,0.84))] px-7 py-6 shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
+		aria-modal="true"
+		role="dialog"
+	>
+		<div class="pointer-events-none absolute inset-0 border border-white/5"></div>
+
+		<button
+			type="button"
+			class="absolute right-5 top-5 z-20 rounded-full border border-white/10 bg-black/24 px-3 py-1.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white/46 transition hover:border-[#c8b27a]/30 hover:text-[#f1ddb0]"
+			onclick={close}
+		>
+			{$t('prompt.back')}
+		</button>
+
+		<div class="relative pr-24">
+			<div class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-[#ccb57a]/72">
+				{$t('emulator.eyebrow')}
+			</div>
+			<h2 class="mt-2 text-[1.72rem] font-semibold tracking-[0.01em] text-[#f4ead0]">
+				{$t('emulator.title')}
+			</h2>
+			<p class="mt-3 max-w-[520px] text-[0.84rem] leading-[1.7] text-white/56">
+				{$t('emulator.description')}
+			</p>
+		</div>
+
+		<div class="relative mt-5 flex flex-wrap items-center gap-3">
+			<div
+				class="group relative inline-flex max-w-full items-center overflow-visible rounded-full border border-[#c8b27a]/16 bg-black/24 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+			>
+				<div
+					class="border-r border-[#c8b27a]/12 px-3.5 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#ccb57a]/66"
+				>
+					{$t('emulator.repository')}
+				</div>
+				<a
+					class="border-r border-[#c8b27a]/12 px-3.5 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#f0ddb0]/76 transition hover:text-[#fff2cb] hover:underline"
+					href={SHADPS4_GITHUB_URL}
+					target="_blank"
+					rel="noreferrer"
+				>
+					GitHub
+				</a>
+				<a
+					class="px-3.5 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#ccb57a]/66 transition hover:text-[#fff2cb] hover:underline"
+					href={SHADPS4_GITHUB_MAIN_URL}
+					target="_blank"
+					rel="noreferrer"
+				>
+					main
+				</a>
+				<a
+					class="pointer-events-none absolute left-0 top-[calc(100%+0.45rem)] z-40 max-w-[360px] rounded-[12px] border border-[#c8b27a]/14 bg-black/82 px-3 py-2 text-[0.58rem] font-semibold tracking-[0.08em] text-white/52 opacity-0 shadow-[0_14px_34px_rgba(0,0,0,0.42)] backdrop-blur-[6px] transition duration-150 hover:text-[#f1ddb0] hover:underline group-hover:pointer-events-auto group-hover:opacity-100"
+					href={SHADPS4_GITHUB_MAIN_URL}
+					target="_blank"
+					rel="noreferrer"
+				>
+					{SHADPS4_GITHUB_MAIN_URL}
+				</a>
+			</div>
+
+			<button
+				class="inline-flex items-center rounded-full border border-[#c8b27a]/16 bg-black/24 px-3.5 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#f0ddb0]/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:text-[#fff2cb] disabled:cursor-wait disabled:opacity-50"
+				disabled={isUpdating}
+				onclick={updateShadps4}
+			>
+				{#if isControllerInputActive && (inputMode === 'xbox' || inputMode === 'dualsense')}
+					<span
+						class="mr-2 inline-flex items-center gap-1.5 rounded-full border border-[#c8b27a]/16 bg-black/26 px-2 py-1 text-[0.52rem] tracking-[0.14em] text-[#f0ddb0]/82"
+					>
+						{#if inputMode === 'xbox'}
+							<span
+								class="flex h-[16px] w-[16px] items-center justify-center rounded-full border border-yellow-200/45 bg-yellow-400/10 text-[0.58rem] font-black leading-none text-yellow-100 drop-shadow-[0_0_6px_rgba(250,204,21,0.5)]"
+								aria-hidden="true"
+							>
+								Y
+							</span>
+						{:else}
+							<span
+								class="flex h-[16px] w-[16px] items-center justify-center rounded-full border border-[#67e8f9]/42 bg-[#07131a]/80 text-[#67e8f9] drop-shadow-[0_0_6px_rgba(103,232,249,0.45)]"
+								aria-hidden="true"
+							>
+								<svg
+									class="h-[10px] w-[10px]"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.3"
+									stroke-linejoin="round"
+								>
+									<path d="M12 4l8 16H4z" />
+								</svg>
+							</span>
+						{/if}
+					</span>
+				{/if}
+				<span>{$t('emulator.update.button')}</span>
+			</button>
+		</div>
+
+		{#if updateStatusKey}
+			<div class="relative mt-3">
+				<div
+					class={`flex items-center justify-between gap-3 text-[0.6rem] font-semibold uppercase tracking-[0.18em] ${updateStatus === 'failed' ? 'text-red-300/70' : 'text-white/42'}`}
+				>
+					<span>{$t(updateStatusKey)}</span>
+					{#if updateProgress !== null}
+						<span>{updateProgress}%</span>
+					{/if}
+				</div>
+				<div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-black/34">
+					<div
+						class="h-full rounded-full bg-[#c8b27a]/74 transition-[width] duration-150"
+						style={`width: ${updateProgress ?? (isUpdating ? 34 : 100)}%`}
+					></div>
+				</div>
+			</div>
+		{/if}
+
+		<div class="relative mt-6 grid gap-3 sm:grid-cols-2">
+			<div class="rounded-[20px] border border-[#c8b27a]/10 bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+				<div class="text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-[#ccb57a]/58">
+					{$t('emulator.labels.status')}
+				</div>
+				<div class="mt-2 text-[0.92rem] font-semibold text-[#f4ead0]/88">
+					{$t(statusKey)}
+				</div>
+			</div>
+
+			<div class="rounded-[20px] border border-[#c8b27a]/10 bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+				<div class="text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-[#ccb57a]/58">
+					{$t('emulator.labels.channel')}
+				</div>
+				<div class="mt-2 text-[0.92rem] font-semibold text-[#f4ead0]/88">
+					{shadps4?.channel ?? $t('emulator.valueUnavailable')}
+				</div>
+			</div>
+
+			<div class="rounded-[20px] border border-[#c8b27a]/10 bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+				<div class="text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-[#ccb57a]/58">
+					{$t('emulator.labels.version')}
+				</div>
+				<div class="mt-2 break-all text-[0.82rem] font-semibold leading-[1.5] text-[#f4ead0]/82">
+					{shadps4?.version ?? $t('emulator.valueUnavailable')}
+				</div>
+			</div>
+
+			<div class="rounded-[20px] border border-[#c8b27a]/10 bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+				<div class="text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-[#ccb57a]/58">
+					{$t('emulator.labels.commit')}
+				</div>
+				<div class="mt-2 break-all text-[0.92rem] font-semibold text-[#f4ead0]/88">
+					{commit ?? $t('emulator.valueUnavailable')}
+				</div>
+			</div>
+		</div>
+
+		<div class="relative mt-3 rounded-[20px] border border-[#c8b27a]/10 bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+			<div class="text-[0.58rem] font-semibold uppercase tracking-[0.22em] text-[#ccb57a]/58">
+				{$t('emulator.labels.executable')}
+			</div>
+			<div class="mt-2 break-all text-[0.74rem] font-semibold leading-[1.55] text-white/58">
+				{shadps4?.executablePath ?? $t('emulator.valueUnavailable')}
+			</div>
+		</div>
+
+		<InputPrompts
+			compact
+			class="relative mt-5 text-white/42"
+			{inputMode}
+			{isXboxControllerConnected}
+			{isDualSenseControllerConnected}
+		/>
+	</section>
+</div>

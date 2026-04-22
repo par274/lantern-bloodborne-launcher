@@ -1,0 +1,152 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Dev",
+            "type": "process",
+            "command": "npm",
+            "windows": {
+                "command": "npm.cmd"
+            },
+            "args": [
+                "run",
+                "dev"
+            ],
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Check",
+            "type": "process",
+            "command": "npm",
+            "windows": {
+                "command": "npm.cmd"
+            },
+            "args": [
+                "run",
+                "check"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Build",
+            "type": "process",
+            "command": "npm",
+            "windows": {
+                "command": "npm.cmd"
+            },
+            "args": [
+                "run",
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Start",
+            "type": "process",
+            "command": "npm",
+            "windows": {
+                "command": "npm.cmd"
+            },
+            "args": [
+                "run",
+                "start"
+            ],
+            "group": "test",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Build Portable",
+            "type": "process",
+            "command": "npm",
+            "windows": {
+                "command": "npm.cmd"
+            },
+            "args": [
+                "run",
+                "dist:portable"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Build Installer",
+            "type": "process",
+            "command": "npm",
+            "windows": {
+                "command": "npm.cmd"
+            },
+            "args": [
+                "run",
+                "dist:installer"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Build CI (zip)",
+            "type": "process",
+            "command": "npm",
+            "windows": {
+                "command": "npm.cmd"
+            },
+            "args": [
+                "run",
+                "dist:ci"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Clean",
+            "type": "process",
+            "command": "npm",
+            "windows": {
+                "command": "npm.cmd"
+            },
+            "args": [
+                "run",
+                "clean"
+            ],
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LanternLauncher
+Comment=LanternLauncher for Bloodborne shadPS4 emu.
+Exec=lantern-bloodborne-launcher
+Icon=com.parworks.lanternlauncher
+Terminal=false
+Categories=Game;Utility;
+StartupWMClass=LanternLauncher

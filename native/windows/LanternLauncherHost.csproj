@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <UseWindowsForms>true</UseWindowsForms>
+        <AssemblyName>app</AssemblyName>
+        <TargetName>app</TargetName>
+        <RootNamespace>Lantern.WindowsLauncher</RootNamespace>
+        <ApplicationIcon>..\..\build\icon.ico</ApplicationIcon>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+        <LauncherProductName Condition="'$(LauncherProductName)' == ''">LanternLauncher</LauncherProductName>
+        <LauncherDescription Condition="'$(LauncherDescription)' == ''">LanternLauncher bootstrap</LauncherDescription>
+        <LauncherCompany Condition="'$(LauncherCompany)' == ''">par274</LauncherCompany>
+        <LauncherCopyright Condition="'$(LauncherCopyright)' == ''">Copyright (c) 2026 par274</LauncherCopyright>
+        <LauncherVersion Condition="'$(LauncherVersion)' == ''">0.0.1</LauncherVersion>
+        <Product>$(LauncherProductName)</Product>
+        <AssemblyTitle>$(LauncherProductName)</AssemblyTitle>
+        <Company>$(LauncherCompany)</Company>
+        <AssemblyCompany>$(LauncherCompany)</AssemblyCompany>
+        <Authors>$(LauncherCompany)</Authors>
+        <FileDescription>$(LauncherDescription)</FileDescription>
+        <Copyright>$(LauncherCopyright)</Copyright>
+        <Version>$(LauncherVersion)</Version>
+        <FileVersion>$(LauncherVersion)</FileVersion>
+        <InformationalVersion>$(LauncherVersion)</InformationalVersion>
+    </PropertyGroup>
+</Project>
