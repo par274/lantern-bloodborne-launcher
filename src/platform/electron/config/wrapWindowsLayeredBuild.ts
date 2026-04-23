@@ -130,6 +130,16 @@ function shouldCreateLayeredWindowsZip(): boolean {
     return packageLifecycleScript.includes(':ci');
 }
 
+function isWindowsTargetBuild(): boolean {
+    const explicitPlatform = process.env.BUILD_TARGET_PLATFORM;
+
+    if (explicitPlatform) {
+        return explicitPlatform === 'win32';
+    }
+
+    return process.platform === 'win32';
+}
+
 function runDotnetPublish(): string {
     const { productName, description, company, version, copyright } = resolveLauncherMetadata();
     const args = [
@@ -285,9 +295,13 @@ async function createLayeredWindowsZip(unpackedDirectory: string): Promise<strin
 }
 
 export async function wrapWindowsLayeredBuild(buildResult: BuildResult): Promise<string[]> {
+    if (!isWindowsTargetBuild()) {
+        return [];
+    }
+
     const entries = await readdir(buildResult.outDir, { withFileTypes: true });
     const unpackedDirectories = entries
-        .filter((entry) => entry.isDirectory() && entry.name.endsWith('-unpacked'))
+        .filter((entry) => entry.isDirectory() && entry.name.endsWith('win-unpacked'))
         .map((entry) => path.join(buildResult.outDir, entry.name));
     const additionalArtifacts: string[] = [];
 
