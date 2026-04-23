@@ -20,6 +20,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   prepare:
     name: Prepare Workspace
@@ -116,7 +119,6 @@ jobs:
       - name: Create or update GitHub release
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
