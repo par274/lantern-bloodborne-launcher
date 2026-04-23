@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { app } from 'electron';
 
@@ -25,6 +25,8 @@ import { setSplashStatusKey } from './splashStatus';
 const SHADPS4_PATCHES_URL = `https://raw.githubusercontent.com/shadps4-emu/ps4_cheats/refs/heads/main/PATCHES/${BLOODBORNE_PATCH_FILE_NAME}`;
 const SHADPS4_RUNTIME_INIT_TIMEOUT_MS = 20000;
 const SHADPS4_RUNTIME_INIT_POLL_MS = 250;
+const SHADPS4_DIRECTORY_NAME = 'shadPS4';
+const SHADPS4_LEGACY_DIRECTORY_NAME = 'shadps4';
 const SHADPS4_KEYS_FILE_NAME = 'keys.json';
 const XML_METADATA_TAG_PATTERN = /<Metadata\b[\s\S]*?>/g;
 const XML_ATTRIBUTE_PATTERN = /\s([A-Za-z_:][\w:.-]*)="([^"]*)"/g;
@@ -45,22 +47,119 @@ let bloodbornePatchUpdateStatus: BloodbornePatchUpdateStatusSnapshot = {
     error: null
 };
 
-function resolveRoamingShadps4UserDataRootPath(): string {
-    return path.join(app.getPath('appData'), 'shadps4');
+function resolveDefaultShadps4UserDataRootPath(): string {
+    if (process.platform === 'linux') {
+        const xdgDataHome = process.env.XDG_DATA_HOME?.trim();
+
+        return path.join(xdgDataHome ? path.resolve(xdgDataHome) : path.join(app.getPath('home'), '.local', 'share'), SHADPS4_DIRECTORY_NAME);
+    }
+
+    return path.join(app.getPath('appData'), SHADPS4_DIRECTORY_NAME);
 }
 
-function resolvePortableShadps4UserDataRootPath(executablePath: string): string {
-    return path.join(path.dirname(executablePath), 'user');
+function createUniquePathList(candidates: string[]): string[] {
+    const seen = new Set<string>();
+
+    return candidates.filter((candidate) => {
+        const resolvedCandidate = path.resolve(candidate);
+        const key =
+            process.platform === 'win32' || process.platform === 'darwin'
+                ? resolvedCandidate.toLowerCase()
+                : resolvedCandidate;
+
+        if (seen.has(key)) {
+            return false;
+        }
+
+        seen.add(key);
+        return true;
+    });
+}
+
+function resolveLegacyShadps4UserDataRootPaths(): string[] {
+    const appDataRootPath = app.getPath('appData');
+    const candidates = [
+        path.join(appDataRootPath, SHADPS4_LEGACY_DIRECTORY_NAME)
+    ];
+
+    if (process.platform === 'linux') {
+        const xdgDataHome = process.env.XDG_DATA_HOME?.trim();
+        const dataRootPath = xdgDataHome ? path.resolve(xdgDataHome) : path.join(app.getPath('home'), '.local', 'share');
+
+        candidates.push(
+            path.join(dataRootPath, SHADPS4_LEGACY_DIRECTORY_NAME),
+            path.join(appDataRootPath, SHADPS4_DIRECTORY_NAME)
+        );
+    }
+
+    const canonicalRootPath = path.resolve(resolveDefaultShadps4UserDataRootPath());
+    return createUniquePathList(candidates.map((candidate) => path.resolve(candidate))).filter(
+        (candidate) => candidate !== canonicalRootPath
+    );
+}
+
+function resolveMacAppBundleRootPath(executablePath: string): string | null {
+    let currentPath = path.resolve(executablePath);
+
+    while (true) {
+        const parentPath = path.dirname(currentPath);
+        if (parentPath === currentPath) {
+            return null;
+        }
+
+        if (parentPath.toLowerCase().endsWith('.app')) {
+            return parentPath;
+        }
+
+        currentPath = parentPath;
+    }
+}
+
+function resolvePortableShadps4UserDataRootPaths(executablePath: string): string[] {
+    const resolvedExecutablePath = path.resolve(executablePath);
+    const candidates = [path.join(path.dirname(resolvedExecutablePath), 'user')];
+
+    const appBundleRootPath = resolveMacAppBundleRootPath(resolvedExecutablePath);
+    if (appBundleRootPath) {
+        candidates.push(
+            path.join(appBundleRootPath, 'user'),
+            path.join(path.dirname(appBundleRootPath), 'user')
+        );
+    }
+
+    return createUniquePathList(candidates.map((candidate) => path.resolve(candidate)));
+}
+
+async function migrateLegacyShadps4UserDataRootPath(): Promise<void> {
+    const canonicalRootPath = path.resolve(resolveDefaultShadps4UserDataRootPath());
+    if (await pathExists(canonicalRootPath)) {
+        return;
+    }
+
+    for (const legacyRootPath of resolveLegacyShadps4UserDataRootPaths()) {
+        if (!(await pathExists(legacyRootPath))) {
+            continue;
+        }
+
+        try {
+            await mkdir(path.dirname(canonicalRootPath), { recursive: true });
+            await rename(legacyRootPath, canonicalRootPath);
+        } catch (error) {
+            console.warn(`Failed to migrate shadPS4 user data from ${legacyRootPath} to ${canonicalRootPath}.`, error);
+        }
+
+        return;
+    }
 }
 
 function resolveShadps4UserDataRootCandidates(executablePath?: string | null): string[] {
-    const candidates = [resolveRoamingShadps4UserDataRootPath()];
+    const candidates = [resolveDefaultShadps4UserDataRootPath(), ...resolveLegacyShadps4UserDataRootPaths()];
 
     if (executablePath) {
-        candidates.push(resolvePortableShadps4UserDataRootPath(executablePath));
+        candidates.push(...resolvePortableShadps4UserDataRootPaths(executablePath));
     }
 
-    return [...new Set(candidates.map((candidate) => path.resolve(candidate)))];
+    return createUniquePathList(candidates.map((candidate) => path.resolve(candidate)));
 }
 
 function resolveShadps4ConfigJsonPath(rootPath: string): string {
@@ -460,6 +559,8 @@ function createShadps4ConfigJsonSeed(rootPath: string, installDir: string): Reco
 }
 
 async function findShadps4ConfigRootPath(executablePath?: string | null): Promise<string | null> {
+    await migrateLegacyShadps4UserDataRootPath();
+
     for (const rootPath of resolveShadps4UserDataRootCandidates(executablePath)) {
         if (
             (await pathExists(resolveShadps4ConfigJsonPath(rootPath))) ||
@@ -473,6 +574,8 @@ async function findShadps4ConfigRootPath(executablePath?: string | null): Promis
 }
 
 async function resolveShadps4UserDataRootPath(executablePath?: string | null): Promise<string> {
+    await migrateLegacyShadps4UserDataRootPath();
+
     const configRootPath = await findShadps4ConfigRootPath(executablePath);
     if (configRootPath) {
         return configRootPath;
@@ -484,7 +587,7 @@ async function resolveShadps4UserDataRootPath(executablePath?: string | null): P
         }
     }
 
-    return resolveRoamingShadps4UserDataRootPath();
+    return resolveDefaultShadps4UserDataRootPath();
 }
 
 async function initializeShadps4UserData(executablePath: string): Promise<string | null> {
