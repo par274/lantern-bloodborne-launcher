@@ -29,7 +29,7 @@ jobs:
       short-sha: ${{ steps.set-vars.outputs.short-sha }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set variables
         id: set-vars
@@ -71,17 +71,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: "npm"
 
       - name: Setup .NET SDK
         if: matrix.platform == 'win32'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
@@ -92,7 +92,7 @@ jobs:
         run: npm run dist:ci
 
       - name: Upload CI artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lanternlauncher-${{ matrix.platform }}-${{ matrix.arch }}-${{ needs.prepare.outputs.date }}-${{ needs.prepare.outputs.short-sha }}
           path: .build/release/electron/*.zip
@@ -107,7 +107,7 @@ jobs:
       contents: write
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: .release-artifacts
           pattern: lanternlauncher-*
