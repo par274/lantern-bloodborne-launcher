@@ -92,7 +92,7 @@ jobs:
         run: npm ci
 
       - name: Build CI distributables
-        run: npm run dist:ci
+        run: npm run dist:ci -- --publish never
 
       - name: Upload CI artifacts
         uses: actions/upload-artifact@v7
