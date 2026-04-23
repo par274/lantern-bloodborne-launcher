@@ -1,0 +1,139 @@
+name: Build and Release
+
+on:
+  push:
+    branches: ["**"]
+    tags:
+      - "v*"
+    paths-ignore:
+      - "**/*.md"
+  pull_request:
+    branches: ["main"]
+    paths-ignore:
+      - "**/*.md"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare Workspace
+    runs-on: ubuntu-latest
+    outputs:
+      date: ${{ steps.set-vars.outputs.date }}
+      short-sha: ${{ steps.set-vars.outputs.short-sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set variables
+        id: set-vars
+        shell: bash
+        run: |
+          echo "date=$(date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          echo "short-sha=$(echo "${GITHUB_SHA}" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            platform: win32
+            arch: x64
+          - name: Linux x64
+            os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - name: macOS x64
+            os: macos-13
+            platform: darwin
+            arch: x64
+          - name: macOS arm64
+            os: macos-14
+            platform: darwin
+            arch: arm64
+
+    env:
+      BUILD_TARGET_PLATFORM: ${{ matrix.platform }}
+      BUILD_TARGET_ARCH: ${{ matrix.arch }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup .NET SDK
+        if: matrix.platform == 'win32'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CI distributables
+        run: npm run dist:ci
+
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lanternlauncher-${{ matrix.platform }}-${{ matrix.arch }}-${{ needs.prepare.outputs.date }}-${{ needs.prepare.outputs.short-sha }}
+          path: .build/release/electron/*.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish Release
+    needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: .release-artifacts
+          pattern: lanternlauncher-*
+          merge-multiple: true
+
+      - name: Create or update GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists. Uploading fresh artifacts."
+          elif [[ "$RELEASE_TAG" == *-* ]]; then
+            gh release create "$RELEASE_TAG" \
+              --repo "$GH_REPO" \
+              --title "$RELEASE_TAG" \
+              --generate-notes \
+              --prerelease
+          else
+            gh release create "$RELEASE_TAG" \
+              --repo "$GH_REPO" \
+              --title "$RELEASE_TAG" \
+              --generate-notes
+          fi
+
+          find .release-artifacts -type f -name '*.zip' -print0 | \
+            xargs -0 gh release upload "$RELEASE_TAG" --repo "$GH_REPO" --clobber
