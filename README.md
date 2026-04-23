@@ -19,12 +19,21 @@ An alternative to BB_Launcher that allows you to control Bloodborne fully intera
 * General ShadPS4 settings management
 * And more..
 
-## Installation & usage
+## Usage
 
-1. Go releases and download your OS-specific build.
-2. If you use a Windows, you can install or using portable version.
-3. Run LanternLauncher from app.exe and select the language and Bloodborne folder you dumped from your console.
-4. Enjoy
+### Windows
+
+* Download the Windows build from Releases.
+* Extract the portable package and run `app.exe`.
+* On first launch, choose your Bloodborne game folder. It must be a supported `CUSA` folder and contain `eboot.bin`.
+* LanternLauncher will prepare shadPS4, patch files, and user data automatically before opening the main menu.
+
+### Linux / macOS
+
+* Download the build for your platform from Releases.
+* macOS: open the `.dmg` and move the app where you want.
+* Linux: run the AppImage, and mark it executable first if your desktop asks for it.
+* On first launch, choose your Bloodborne game folder. Lantern handles the initial shadPS4 setup for you.
 
 ## Compatible
 
@@ -39,11 +48,29 @@ Now only support languages are English and Turkish.
 
 ## Build
 
-* Run `git clone https://github.com/par274/lantern-bloodborne-launcher.git`
-* Rename `.env.example` to `.env` file
-* Then run command: `npm install`
-* Open VSCode, `Terminal > Run Task`
-* Select Dev, Start or Build.
+### Windows
+
+Windows requires the DotNet SDK specifically. This is how we manage UAC operations, because Squirrel.Windows is deprecated for electron-builder.
+
+* Requirements: Node.js 20+, npm, .NET SDK.
+* Install dependencies with `npm install`.
+* Run the app in dev mode with `npm run dev`.
+* Create the portable package with `npm run dist:portable`.
+* Create the installer build with `npm run dist:installer`.
+
+### Linux / macOS
+
+* Requirements: Node.js 20+, npm.
+* Install dependencies with `npm install`.
+* Run the app in dev mode with `npm run dev`.
+* Build renderer and Electron output with `npm run build`.
+* Package for macOS with `npx electron-builder --config .build/dist/electron/config.cjs --mac`.
+* Package for Linux with `npx electron-builder --config .build/dist/electron/config.cjs --linux`.
+
+### In VSCode Tasks
+
+* Open project in VSCode.
+* Select `Terminal > Run Task` and run any command.
 
 ## Disclaimer
 
