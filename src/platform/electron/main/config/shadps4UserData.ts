@@ -3,10 +3,16 @@ import { access, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises
 import path from 'node:path';
 import { app } from 'electron';
 
+import { SHADPS4_GRAPHICS_EXTRA_DMEM_OPTIONS } from '$lib/contracts/commands';
 import type {
     BloodbornePatchCatalogItem,
     BloodbornePatchUpdateStatusSnapshot,
     DeleteShadps4ShaderCacheResult,
+    Shadps4GraphicsExtraDmemOption,
+    Shadps4GraphicsPresetSelection,
+    Shadps4GraphicsReadbacksMode,
+    Shadps4GraphicsResolutionOption,
+    Shadps4GraphicsSettings,
     Shadps4GeneralSettings
 } from '$lib/contracts/commands';
 import { BLOODBORNE_TITLE_IDS, type LauncherBootstrapState } from '$lib/contracts/launcherConfig';
@@ -19,7 +25,7 @@ import {
     isBloodbornePatchAppVersionSupported
 } from '$lib/patches/bloodbornePatches';
 
-import { resolveBloodborneCustomConfig } from './presets';
+import { resolveBloodborneCustomConfig, SHADPS4_CUSTOM_CONFIG_PRESET_IDS } from './presets';
 import { setSplashStatusKey } from './splashStatus';
 
 const SHADPS4_PATCHES_URL = `https://raw.githubusercontent.com/shadps4-emu/ps4_cheats/refs/heads/main/PATCHES/${BLOODBORNE_PATCH_FILE_NAME}`;
@@ -39,6 +45,33 @@ const DEFAULT_SHADPS4_GENERAL_SETTINGS: Shadps4GeneralSettings = {
     volumeSlider: 100,
     releaseTrophyKey: ''
 };
+const DEFAULT_SHADPS4_GRAPHICS_SETTINGS: Shadps4GraphicsSettings = {
+    presetId: 'quality',
+    custom: {
+        readbacksMode: 'relaxed',
+        resolution: '1080p',
+        extraDmemInMegabytes: 8196,
+        pipelineCacheEnabled: true
+    },
+    directMemoryAccessEnabled: false
+};
+const SHADPS4_DISABLED_READBACKS_MODE_VALUE = 2;
+const SHADPS4_RELAXED_READBACKS_MODE_VALUE = 0;
+const SHADPS4_GRAPHICS_RESOLUTION_DIMENSIONS: Record<Shadps4GraphicsResolutionOption, { width: number; height: number }> =
+    {
+        '1080p': {
+            width: 1920,
+            height: 1080
+        },
+        '1440p': {
+            width: 2560,
+            height: 1440
+        },
+        '2160p': {
+            width: 3840,
+            height: 2160
+        }
+    };
 
 let bloodbornePatchUpdateStatus: BloodbornePatchUpdateStatusSnapshot = {
     key: 'patch.update.idle',
@@ -917,8 +950,254 @@ function createCustomConfigFallback(): Record<string, unknown> {
     return resolveBloodborneCustomConfig({ presetId: 'quality' }) as unknown as Record<string, unknown>;
 }
 
+function normalizeGraphicsPresetSelection(value: unknown): Shadps4GraphicsPresetSelection {
+    if (value === 'custom') {
+        return 'custom';
+    }
+
+    return SHADPS4_CUSTOM_CONFIG_PRESET_IDS.includes(
+        value as (typeof SHADPS4_CUSTOM_CONFIG_PRESET_IDS)[number]
+    )
+        ? (value as (typeof SHADPS4_CUSTOM_CONFIG_PRESET_IDS)[number])
+        : DEFAULT_SHADPS4_GRAPHICS_SETTINGS.presetId;
+}
+
+function normalizeGraphicsReadbacksMode(value: unknown): Shadps4GraphicsReadbacksMode {
+    return value === 'disabled' ? 'disabled' : 'relaxed';
+}
+
+function readGraphicsReadbacksModeFromConfig(value: unknown): Shadps4GraphicsReadbacksMode {
+    return normalizeNumber(
+        value,
+        DEFAULT_SHADPS4_GRAPHICS_SETTINGS.custom.readbacksMode === 'relaxed'
+            ? SHADPS4_RELAXED_READBACKS_MODE_VALUE
+            : SHADPS4_DISABLED_READBACKS_MODE_VALUE,
+        { integer: true }
+    ) === SHADPS4_RELAXED_READBACKS_MODE_VALUE
+        ? 'relaxed'
+        : 'disabled';
+}
+
+function normalizeGraphicsResolutionOption(value: unknown): Shadps4GraphicsResolutionOption {
+    switch (value) {
+        case '1440p':
+        case '2160p':
+        case '1080p':
+            return value;
+        default:
+            return DEFAULT_SHADPS4_GRAPHICS_SETTINGS.custom.resolution;
+    }
+}
+
+function resolveResolutionSignature(width: number, height: number): string {
+    return `${Math.max(width, height)}x${Math.min(width, height)}`;
+}
+
+function readGraphicsResolutionFromConfig(
+    windowWidth: unknown,
+    windowHeight: unknown
+): Shadps4GraphicsResolutionOption {
+    const fallbackDimensions =
+        SHADPS4_GRAPHICS_RESOLUTION_DIMENSIONS[DEFAULT_SHADPS4_GRAPHICS_SETTINGS.custom.resolution];
+    const resolvedWidth = normalizeNumber(windowWidth, fallbackDimensions.width, {
+        min: 1,
+        integer: true
+    });
+    const resolvedHeight = normalizeNumber(windowHeight, fallbackDimensions.height, {
+        min: 1,
+        integer: true
+    });
+    const resolutionSignature = resolveResolutionSignature(resolvedWidth, resolvedHeight);
+
+    for (const [resolution, dimensions] of Object.entries(SHADPS4_GRAPHICS_RESOLUTION_DIMENSIONS) as Array<
+        [Shadps4GraphicsResolutionOption, { width: number; height: number }]
+    >) {
+        if (resolutionSignature === resolveResolutionSignature(dimensions.width, dimensions.height)) {
+            return resolution;
+        }
+    }
+
+    return DEFAULT_SHADPS4_GRAPHICS_SETTINGS.custom.resolution;
+}
+
+function normalizeGraphicsExtraDmemOption(value: unknown): Shadps4GraphicsExtraDmemOption {
+    const fallbackValue = DEFAULT_SHADPS4_GRAPHICS_SETTINGS.custom.extraDmemInMegabytes;
+    const resolvedValue = normalizeNumber(value, fallbackValue, {
+        min: SHADPS4_GRAPHICS_EXTRA_DMEM_OPTIONS[0],
+        max: SHADPS4_GRAPHICS_EXTRA_DMEM_OPTIONS[SHADPS4_GRAPHICS_EXTRA_DMEM_OPTIONS.length - 1],
+        integer: true
+    });
+
+    let nearestValue = fallbackValue;
+    let smallestDistance = Number.POSITIVE_INFINITY;
+
+    for (const candidate of SHADPS4_GRAPHICS_EXTRA_DMEM_OPTIONS) {
+        const distance = Math.abs(candidate - resolvedValue);
+        if (distance < smallestDistance) {
+            smallestDistance = distance;
+            nearestValue = candidate;
+        }
+    }
+
+    return nearestValue;
+}
+
+function resolveGraphicsStateFromConfig(
+    config: Record<string, unknown> | null
+): Pick<Shadps4GraphicsSettings, 'custom' | 'directMemoryAccessEnabled'> {
+    const gpu = config && isRecord(config['GPU']) ? config['GPU'] : {};
+    const general = config && isRecord(config['General']) ? config['General'] : {};
+    const vulkan = config && isRecord(config['Vulkan']) ? config['Vulkan'] : {};
+
+    return {
+        custom: {
+            readbacksMode: readGraphicsReadbacksModeFromConfig(gpu['readbacks_mode']),
+            resolution: readGraphicsResolutionFromConfig(gpu['window_width'], gpu['window_height']),
+            extraDmemInMegabytes: normalizeGraphicsExtraDmemOption(general['extra_dmem_in_mbytes']),
+            pipelineCacheEnabled: normalizeBoolean(
+                vulkan['pipeline_cache_enabled'],
+                DEFAULT_SHADPS4_GRAPHICS_SETTINGS.custom.pipelineCacheEnabled
+            )
+        },
+        directMemoryAccessEnabled: normalizeBoolean(
+            gpu['direct_memory_access_enabled'],
+            DEFAULT_SHADPS4_GRAPHICS_SETTINGS.directMemoryAccessEnabled
+        )
+    };
+}
+
+function areGraphicsPresetStatesEqual(
+    left: Pick<Shadps4GraphicsSettings, 'custom' | 'directMemoryAccessEnabled'>,
+    right: Pick<Shadps4GraphicsSettings, 'custom' | 'directMemoryAccessEnabled'>
+): boolean {
+    return (
+        left.custom.readbacksMode === right.custom.readbacksMode &&
+        left.custom.resolution === right.custom.resolution &&
+        left.custom.extraDmemInMegabytes === right.custom.extraDmemInMegabytes &&
+        left.custom.pipelineCacheEnabled === right.custom.pipelineCacheEnabled
+    );
+}
+
+const SHADPS4_PRESET_GRAPHICS_STATES: Record<
+    (typeof SHADPS4_CUSTOM_CONFIG_PRESET_IDS)[number],
+    Pick<Shadps4GraphicsSettings, 'custom' | 'directMemoryAccessEnabled'>
+> = Object.fromEntries(
+    SHADPS4_CUSTOM_CONFIG_PRESET_IDS.map((presetId) => [
+        presetId,
+        resolveGraphicsStateFromConfig(
+            resolveBloodborneCustomConfig({ presetId }) as unknown as Record<string, unknown>
+        )
+    ])
+) as Record<
+    (typeof SHADPS4_CUSTOM_CONFIG_PRESET_IDS)[number],
+    Pick<Shadps4GraphicsSettings, 'custom' | 'directMemoryAccessEnabled'>
+>;
+
+function resolveGraphicsPresetState(
+    presetId: (typeof SHADPS4_CUSTOM_CONFIG_PRESET_IDS)[number]
+): Pick<Shadps4GraphicsSettings, 'custom' | 'directMemoryAccessEnabled'> {
+    return SHADPS4_PRESET_GRAPHICS_STATES[presetId];
+}
+
+function resolveGraphicsPresetIdFromConfig(
+    state: Pick<Shadps4GraphicsSettings, 'custom' | 'directMemoryAccessEnabled'>,
+    preferredPresetId?: Exclude<Shadps4GraphicsPresetSelection, 'custom'> | null
+): Shadps4GraphicsPresetSelection {
+    if (preferredPresetId && areGraphicsPresetStatesEqual(state, resolveGraphicsPresetState(preferredPresetId))) {
+        return preferredPresetId;
+    }
+
+    for (const presetId of SHADPS4_CUSTOM_CONFIG_PRESET_IDS) {
+        const presetState = resolveGraphicsPresetState(presetId);
+
+        if (areGraphicsPresetStatesEqual(state, presetState)) {
+            return presetId;
+        }
+    }
+
+    return 'custom';
+}
+
+function readGraphicsSettingsFromConfig(
+    config: Record<string, unknown> | null,
+    preferredPresetId?: Exclude<Shadps4GraphicsPresetSelection, 'custom'> | null
+): Shadps4GraphicsSettings {
+    const resolvedState = resolveGraphicsStateFromConfig(config ?? createCustomConfigFallback());
+
+    return {
+        presetId: resolveGraphicsPresetIdFromConfig(resolvedState, preferredPresetId),
+        ...resolvedState
+    };
+}
+
+function normalizeGraphicsSettings(settings: Shadps4GraphicsSettings): Shadps4GraphicsSettings {
+    return {
+        presetId: normalizeGraphicsPresetSelection(settings.presetId),
+        custom: {
+            readbacksMode: normalizeGraphicsReadbacksMode(settings.custom.readbacksMode),
+            resolution: normalizeGraphicsResolutionOption(settings.custom.resolution),
+            extraDmemInMegabytes: normalizeGraphicsExtraDmemOption(settings.custom.extraDmemInMegabytes),
+            pipelineCacheEnabled: !!settings.custom.pipelineCacheEnabled
+        },
+        directMemoryAccessEnabled: !!settings.directMemoryAccessEnabled
+    };
+}
+
+function applyGraphicsSettingsToConfig(
+    config: Record<string, unknown>,
+    settings: Shadps4GraphicsSettings
+): Record<string, unknown> {
+    const currentGpu = isRecord(config['GPU']) ? config['GPU'] : {};
+    const currentGeneral = isRecord(config['General']) ? config['General'] : {};
+    const currentVulkan = isRecord(config['Vulkan']) ? config['Vulkan'] : {};
+    const resolutionDimensions = SHADPS4_GRAPHICS_RESOLUTION_DIMENSIONS[settings.custom.resolution];
+
+    return {
+        ...config,
+        GPU: {
+            ...currentGpu,
+            direct_memory_access_enabled: settings.directMemoryAccessEnabled,
+            readbacks_mode:
+                settings.custom.readbacksMode === 'disabled'
+                    ? SHADPS4_DISABLED_READBACKS_MODE_VALUE
+                    : SHADPS4_RELAXED_READBACKS_MODE_VALUE,
+            window_width: resolutionDimensions.width,
+            window_height: resolutionDimensions.height
+        },
+        General: {
+            ...currentGeneral,
+            extra_dmem_in_mbytes: settings.custom.extraDmemInMegabytes
+        },
+        Vulkan: {
+            ...currentVulkan,
+            pipeline_cache_enabled: settings.custom.pipelineCacheEnabled
+        }
+    };
+}
+
+function applyDirectMemoryAccessToConfig(config: Record<string, unknown>, isEnabled: boolean): Record<string, unknown> {
+    const currentGpu = isRecord(config['GPU']) ? config['GPU'] : {};
+
+    return {
+        ...config,
+        GPU: {
+            ...currentGpu,
+            direct_memory_access_enabled: isEnabled
+        }
+    };
+}
+
 export function getBloodbornePatchUpdateStatus(): BloodbornePatchUpdateStatusSnapshot {
     return bloodbornePatchUpdateStatus;
+}
+
+export async function readShadps4GraphicsSettings(
+    bootstrapState: LauncherBootstrapState
+): Promise<Shadps4GraphicsSettings> {
+    const rootPath = await resolveShadps4UserDataRootPathForBootstrapState(bootstrapState);
+    const customConfig = await readShadps4CustomConfigJson(rootPath, bootstrapState);
+
+    return readGraphicsSettingsFromConfig(customConfig);
 }
 
 export async function readShadps4GeneralSettings(
@@ -955,6 +1234,37 @@ export async function saveShadps4GeneralSettings(
     await writeReleaseTrophyKey(rootPath, normalizedSettings.releaseTrophyKey);
 
     return readShadps4GeneralSettings(bootstrapState);
+}
+
+export async function saveShadps4GraphicsSettings(
+    bootstrapState: LauncherBootstrapState,
+    settings: Shadps4GraphicsSettings
+): Promise<Shadps4GraphicsSettings> {
+    const rootPath = await resolveShadps4UserDataRootPathForBootstrapState(bootstrapState);
+    const titleId = bootstrapState.bloodborne.titleId;
+
+    if (!bootstrapState.bloodborne.isValid || !titleId) {
+        throw new Error('Bloodborne custom config cannot be saved before the game is configured.');
+    }
+
+    const normalizedSettings = normalizeGraphicsSettings(settings);
+    const customConfigPath = resolveShadps4CustomConfigPath(rootPath, titleId);
+    const currentCustomConfig = (await readJsonObjectFile(customConfigPath)) ?? createCustomConfigFallback();
+    const nextCustomConfig =
+        normalizedSettings.presetId === 'custom'
+            ? applyGraphicsSettingsToConfig(currentCustomConfig, normalizedSettings)
+            : applyDirectMemoryAccessToConfig(
+                    resolveBloodborneCustomConfig({
+                        baseConfig: currentCustomConfig,
+                        presetId: normalizedSettings.presetId
+                    }) as unknown as Record<string, unknown>,
+                    normalizedSettings.directMemoryAccessEnabled
+                );
+    const preferredPresetId = normalizedSettings.presetId === 'custom' ? null : normalizedSettings.presetId;
+
+    await writeJsonFile(customConfigPath, nextCustomConfig);
+
+    return readGraphicsSettingsFromConfig(nextCustomConfig, preferredPresetId);
 }
 
 export async function deleteShadps4ShaderCache(

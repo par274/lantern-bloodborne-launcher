@@ -69,6 +69,7 @@ function mergeShadps4CustomConfig(
 }
 
 export function resolveBloodborneCustomConfig(options?: {
+    baseConfig?: DeepPartial<Shadps4CustomConfig> | null;
     presetId?: Shadps4CustomConfigPresetId | null;
     overrides?: DeepPartial<Shadps4CustomConfig> | null;
 }): Shadps4CustomConfig {
@@ -77,6 +78,7 @@ export function resolveBloodborneCustomConfig(options?: {
 
     return mergeShadps4CustomConfig(
         createBloodborneCustomConfigDefaults(),
+        options?.baseConfig ?? undefined,
         presetConfig,
         options?.overrides ?? undefined
     );

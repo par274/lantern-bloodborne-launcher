@@ -1,27 +1,26 @@
-import type { TranslationKey } from '$lib/translations/translations';
+import type {
+	Shadps4GraphicsExtraDmemOption,
+	Shadps4GraphicsPresetSelection,
+	Shadps4GraphicsReadbacksMode,
+	Shadps4GraphicsResolutionOption,
+	Shadps4GraphicsSettings
+} from '$lib/contracts/commands';
 
 import type { MenuNode } from '$lib/components/AppMenu.svelte';
 
-export type GraphicsPresetSelection = 'ultra-quality' | 'quality' | 'performance' | 'ultra-performance' | 'custom';
-export type GraphicsReadbacksMode = 'disabled' | 'relaxed';
-export type GraphicsResolutionOption = '1080p' | '1440p' | '2160p';
-export type GraphicsExtraDmemOption = 2048 | 4096 | 8196 | 12288 | 16384;
+import type { TranslationKey } from '$lib/translations/translations';
 
-export type GraphicsMenuState = {
-	presetId: GraphicsPresetSelection;
-	custom: {
-		readbacksMode: GraphicsReadbacksMode;
-		resolution: GraphicsResolutionOption;
-		extraDmemInMegabytes: GraphicsExtraDmemOption;
-		pipelineCacheEnabled: boolean;
-	};
-	directMemoryAccessEnabled: boolean;
-};
+export type GraphicsPresetSelection = Shadps4GraphicsPresetSelection;
+export type GraphicsReadbacksMode = Shadps4GraphicsReadbacksMode;
+export type GraphicsResolutionOption = Shadps4GraphicsResolutionOption;
+export type GraphicsExtraDmemOption = Shadps4GraphicsExtraDmemOption;
+export type GraphicsMenuState = Shadps4GraphicsSettings;
 
 type GraphicsMenuOptions = {
 	state: GraphicsMenuState;
-	selectPreset: (presetId: Exclude<GraphicsPresetSelection, 'custom'>) => void;
-	applyCustomSetting: (update: () => void) => void;
+	selectPreset: (presetId: Exclude<GraphicsPresetSelection, 'custom'>) => void | Promise<void>;
+	applyCustomSetting: (update: (state: GraphicsMenuState) => void) => void | Promise<void>;
+	applyIndependentSetting: (update: (state: GraphicsMenuState) => void) => void | Promise<void>;
 };
 
 export function createDefaultGraphicsMenuState(): GraphicsMenuState {
@@ -131,7 +130,12 @@ function resolveGraphicsPresetDescriptionKey(state: GraphicsMenuState): Translat
 	return 'menu.description.graphics.presets.quality';
 }
 
-export function createGraphicsMenuTree({ state, selectPreset, applyCustomSetting }: GraphicsMenuOptions): readonly MenuNode[] {
+export function createGraphicsMenuTree({
+	state,
+	selectPreset,
+	applyCustomSetting,
+	applyIndependentSetting
+}: GraphicsMenuOptions): readonly MenuNode[] {
 	return [
 		{
 			labelKey: 'menu.system.graphics.presets',
@@ -174,16 +178,16 @@ export function createGraphicsMenuTree({ state, selectPreset, applyCustomSetting
 							labelKey: 'menu.state.readbacks.relaxed',
 							valueKey: state.custom.readbacksMode === 'relaxed' ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.readbacksMode = 'relaxed';
+								applyCustomSetting((nextState) => {
+									nextState.custom.readbacksMode = 'relaxed';
 								})
 						},
 						{
 							labelKey: 'menu.state.disabled',
 							valueKey: state.custom.readbacksMode === 'disabled' ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.readbacksMode = 'disabled';
+								applyCustomSetting((nextState) => {
+									nextState.custom.readbacksMode = 'disabled';
 								})
 						}
 					]
@@ -197,24 +201,24 @@ export function createGraphicsMenuTree({ state, selectPreset, applyCustomSetting
 							labelKey: 'menu.state.resolution1080p',
 							valueKey: state.custom.resolution === '1080p' ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.resolution = '1080p';
+								applyCustomSetting((nextState) => {
+									nextState.custom.resolution = '1080p';
 								})
 						},
 						{
 							labelKey: 'menu.state.resolution1440p',
 							valueKey: state.custom.resolution === '1440p' ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.resolution = '1440p';
+								applyCustomSetting((nextState) => {
+									nextState.custom.resolution = '1440p';
 								})
 						},
 						{
 							labelKey: 'menu.state.resolution2160p',
 							valueKey: state.custom.resolution === '2160p' ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.resolution = '2160p';
+								applyCustomSetting((nextState) => {
+									nextState.custom.resolution = '2160p';
 								})
 						}
 					]
@@ -228,40 +232,40 @@ export function createGraphicsMenuTree({ state, selectPreset, applyCustomSetting
 							labelKey: 'menu.state.extraDmem2048',
 							valueKey: state.custom.extraDmemInMegabytes === 2048 ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.extraDmemInMegabytes = 2048;
+								applyCustomSetting((nextState) => {
+									nextState.custom.extraDmemInMegabytes = 2048;
 								})
 						},
 						{
 							labelKey: 'menu.state.extraDmem4096',
 							valueKey: state.custom.extraDmemInMegabytes === 4096 ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.extraDmemInMegabytes = 4096;
+								applyCustomSetting((nextState) => {
+									nextState.custom.extraDmemInMegabytes = 4096;
 								})
 						},
 						{
 							labelKey: 'menu.state.extraDmem8196',
 							valueKey: state.custom.extraDmemInMegabytes === 8196 ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.extraDmemInMegabytes = 8196;
+								applyCustomSetting((nextState) => {
+									nextState.custom.extraDmemInMegabytes = 8196;
 								})
 						},
 						{
 							labelKey: 'menu.state.extraDmem12288',
 							valueKey: state.custom.extraDmemInMegabytes === 12288 ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.extraDmemInMegabytes = 12288;
+								applyCustomSetting((nextState) => {
+									nextState.custom.extraDmemInMegabytes = 12288;
 								})
 						},
 						{
 							labelKey: 'menu.state.extraDmem16384',
 							valueKey: state.custom.extraDmemInMegabytes === 16384 ? 'menu.state.active' : null,
 							action: () =>
-								applyCustomSetting(() => {
-									state.custom.extraDmemInMegabytes = 16384;
+								applyCustomSetting((nextState) => {
+									nextState.custom.extraDmemInMegabytes = 16384;
 								})
 						}
 					]
@@ -271,8 +275,8 @@ export function createGraphicsMenuTree({ state, selectPreset, applyCustomSetting
 					descriptionKey: 'menu.description.graphics.custom.pipelineCache',
 					valueKey: resolveToggleValueKey(state.custom.pipelineCacheEnabled),
 					dropdown: createBooleanDropdown(state.custom.pipelineCacheEnabled, (value) =>
-						applyCustomSetting(() => {
-							state.custom.pipelineCacheEnabled = value;
+						applyCustomSetting((nextState) => {
+							nextState.custom.pipelineCacheEnabled = value;
 						})
 					)
 				}
@@ -283,8 +287,8 @@ export function createGraphicsMenuTree({ state, selectPreset, applyCustomSetting
 			descriptionKey: 'menu.description.graphics.directMemoryAccess',
 			valueKey: resolveToggleValueKey(state.directMemoryAccessEnabled),
 			dropdown: createBooleanDropdown(state.directMemoryAccessEnabled, (value) =>
-				applyCustomSetting(() => {
-					state.directMemoryAccessEnabled = value;
+				applyIndependentSetting((nextState) => {
+					nextState.directMemoryAccessEnabled = value;
 				})
 			)
 		}

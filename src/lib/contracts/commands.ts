@@ -4,6 +4,8 @@ export const PLATFORM_COMMANDS = {
     APP_EXIT: 'app:exit',
     LAUNCH_GAME: 'launcher:start-game',
     UPDATE_SHADPS4: 'emulator:update-shadps4',
+    GET_SHADPS4_GRAPHICS_SETTINGS: 'emulator:get-graphics-settings',
+    SAVE_SHADPS4_GRAPHICS_SETTINGS: 'emulator:save-graphics-settings',
     GET_SHADPS4_GENERAL_SETTINGS: 'emulator:get-general-settings',
     SAVE_SHADPS4_GENERAL_SETTINGS: 'emulator:save-general-settings',
     DELETE_SHADPS4_SHADER_CACHE: 'emulator:delete-shader-cache',
@@ -42,6 +44,34 @@ export interface BloodbornePatchUpdateStatusSnapshot {
     error: string | null;
 }
 
+export const SHADPS4_GRAPHICS_PRESET_IDS = [
+    'ultra-quality',
+    'quality',
+    'performance',
+    'ultra-performance',
+    'custom'
+] as const;
+
+export const SHADPS4_GRAPHICS_READBACKS_MODES = ['disabled', 'relaxed'] as const;
+export const SHADPS4_GRAPHICS_RESOLUTION_OPTIONS = ['1080p', '1440p', '2160p'] as const;
+export const SHADPS4_GRAPHICS_EXTRA_DMEM_OPTIONS = [2048, 4096, 8196, 12288, 16384] as const;
+
+export type Shadps4GraphicsPresetSelection = (typeof SHADPS4_GRAPHICS_PRESET_IDS)[number];
+export type Shadps4GraphicsReadbacksMode = (typeof SHADPS4_GRAPHICS_READBACKS_MODES)[number];
+export type Shadps4GraphicsResolutionOption = (typeof SHADPS4_GRAPHICS_RESOLUTION_OPTIONS)[number];
+export type Shadps4GraphicsExtraDmemOption = (typeof SHADPS4_GRAPHICS_EXTRA_DMEM_OPTIONS)[number];
+
+export interface Shadps4GraphicsSettings {
+    presetId: Shadps4GraphicsPresetSelection;
+    custom: {
+        readbacksMode: Shadps4GraphicsReadbacksMode;
+        resolution: Shadps4GraphicsResolutionOption;
+        extraDmemInMegabytes: Shadps4GraphicsExtraDmemOption;
+        pipelineCacheEnabled: boolean;
+    };
+    directMemoryAccessEnabled: boolean;
+}
+
 export interface Shadps4GeneralSettings {
     consoleLanguage: number;
     discordRpcEnabled: boolean;
@@ -71,6 +101,16 @@ export interface PlatformCommandMap {
     [PLATFORM_COMMANDS.UPDATE_SHADPS4]: {
         payload: undefined;
         result: LauncherBootstrapState;
+    };
+
+    [PLATFORM_COMMANDS.GET_SHADPS4_GRAPHICS_SETTINGS]: {
+        payload: undefined;
+        result: Shadps4GraphicsSettings;
+    };
+
+    [PLATFORM_COMMANDS.SAVE_SHADPS4_GRAPHICS_SETTINGS]: {
+        payload: Shadps4GraphicsSettings;
+        result: Shadps4GraphicsSettings;
     };
 
     [PLATFORM_COMMANDS.GET_SHADPS4_GENERAL_SETTINGS]: {

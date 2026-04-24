@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 
 	import { asset } from '$app/paths';
-	import { PLATFORM_COMMANDS } from '$lib/contracts/commands';
+	import { PLATFORM_COMMANDS, type Shadps4GraphicsSettings } from '$lib/contracts/commands';
 	import type { LauncherBootstrapState } from '$lib/contracts/launcherConfig';
 	import { setLocale, t } from '$lib/i18n';
 	import type { TranslationKey } from '$lib/translations/translations';
@@ -90,7 +90,8 @@
 			graphicsMenu: createGraphicsMenuTree({
 				state: graphicsMenuState,
 				selectPreset: selectGraphicsPreset,
-				applyCustomSetting: applyCustomGraphicsSetting
+				applyCustomSetting: applyCustomGraphicsSetting,
+				applyIndependentSetting: applyIndependentGraphicsSetting
 			}),
 			graphicsValueKey: resolveGraphicsPresetValueKey(graphicsMenuState),
 			onLaunchGame: () => platformApi.invoke(PLATFORM_COMMANDS.LAUNCH_GAME, undefined),
@@ -441,12 +442,33 @@
 	}
 
 	function selectGraphicsPreset(presetId: Exclude<GraphicsPresetSelection, 'custom'>) {
-		graphicsMenuState.presetId = presetId;
+		updateGraphicsSettings((nextGraphicsSettings) => {
+			nextGraphicsSettings.presetId = presetId;
+		});
 	}
 
-	function applyCustomGraphicsSetting(update: () => void) {
-		update();
-		graphicsMenuState.presetId = 'custom';
+	function applyCustomGraphicsSetting(update: (state: Shadps4GraphicsSettings) => void) {
+		updateGraphicsSettings(update, { forceCustomPreset: true });
+	}
+
+	function applyIndependentGraphicsSetting(update: (state: Shadps4GraphicsSettings) => void) {
+		updateGraphicsSettings(update);
+	}
+
+	function updateGraphicsSettings(
+		update: (state: Shadps4GraphicsSettings) => void,
+		options: {
+			forceCustomPreset?: boolean;
+		} = {}
+	) {
+		const nextGraphicsSettings = $state.snapshot(graphicsMenuState);
+		update(nextGraphicsSettings);
+
+		if (options.forceCustomPreset) {
+			nextGraphicsSettings.presetId = 'custom';
+		}
+
+		applyGraphicsSettings(nextGraphicsSettings);
 	}
 
 	function openPatchModal() {
@@ -498,6 +520,35 @@
 		} catch (error) {
 			console.warn('General settings could not be loaded.', error);
 		}
+	}
+
+	async function loadGraphicsSettings() {
+		if (!platformApi.isAvailable) {
+			return;
+		}
+
+		try {
+			graphicsMenuState = await platformApi.invoke(PLATFORM_COMMANDS.GET_SHADPS4_GRAPHICS_SETTINGS, undefined);
+		} catch (error) {
+			console.warn('Graphics settings could not be loaded.', error);
+		}
+	}
+
+	function applyGraphicsSettings(nextSettings: Shadps4GraphicsSettings) {
+		graphicsMenuState = nextSettings;
+
+		if (!platformApi.isAvailable) {
+			return;
+		}
+
+		void platformApi.invoke(PLATFORM_COMMANDS.SAVE_SHADPS4_GRAPHICS_SETTINGS, nextSettings).then(
+			(writtenSettings) => {
+				graphicsMenuState = writtenSettings;
+			},
+			(error) => {
+				console.warn('Graphics settings could not be saved.', error);
+			}
+		);
 	}
 
 	function applyGeneralSettings(update: Partial<typeof generalSettings>) {
@@ -670,15 +721,23 @@
 	}
 
 	function runMenuAction(action: () => void | Promise<void>) {
-		const result = action();
-		if (result instanceof Promise) {
-			void result.catch((error) => {
-				if (isIgnorableMenuActionError(error)) {
-					return;
-				}
+		try {
+			const result = action();
+			if (result instanceof Promise) {
+				void result.catch((error) => {
+					if (isIgnorableMenuActionError(error)) {
+						return;
+					}
 
-				console.warn('Menu action failed.', error);
-			});
+					console.warn('Menu action failed.', error);
+				});
+			}
+		} catch (error) {
+			if (isIgnorableMenuActionError(error)) {
+				return;
+			}
+
+			console.warn('Menu action failed.', error);
 		}
 	}
 
@@ -953,7 +1012,7 @@
 				const bootstrapState = await platformApi.invoke(PLATFORM_COMMANDS.GET_LAUNCHER_BOOTSTRAP_STATE, undefined);
 				launcherBootstrapState = bootstrapState;
 				setLocale(bootstrapState.config.locale);
-				await loadGeneralSettings();
+				await Promise.all([loadGeneralSettings(), loadGraphicsSettings()]);
 			} catch (error) {
 				console.warn('Launcher config could not be loaded for locale sync.', error);
 			}
@@ -1164,7 +1223,12 @@
 			class="absolute bottom-5 right-7 z-20 flex flex-col items-end gap-[2px] text-[0.72rem] tracking-[0.08em] text-white/40 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] max-sm:bottom-4 max-sm:right-4 max-sm:text-[0.64rem]"
 		>
 			<div>
-				<a class="text-orange-500 drop-shadow-[0_0_6px_rgba(255,165,0,0.6)]" target="_blank" href={app.github}>
+				<a
+					class="text-orange-500 drop-shadow-[0_0_6px_rgba(255,165,0,0.6)]"
+					target="_blank"
+					rel="noopener noreferrer"
+					href={app.github}
+				>
 					{app.appShortTitle}
 				</a>
 			</div>
