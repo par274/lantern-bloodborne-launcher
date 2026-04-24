@@ -6,6 +6,7 @@ import { app } from 'electron';
 import { SHADPS4_GRAPHICS_EXTRA_DMEM_OPTIONS } from '$lib/contracts/commands';
 import type {
     BloodbornePatchCatalogItem,
+    BloodbornePatchEnablementState,
     BloodbornePatchUpdateStatusSnapshot,
     DeleteShadps4ShaderCacheResult,
     Shadps4GraphicsExtraDmemOption,
@@ -215,6 +216,10 @@ function resolveShadps4PatchIndexPath(rootPath: string): string {
     return path.join(resolveShadps4PatchesPath(rootPath), 'files.json');
 }
 
+function resolveShadps4PatchStatePath(rootPath: string): string {
+    return path.join(resolveShadps4PatchesPath(rootPath), 'patch.json');
+}
+
 function resolveShadps4KeysJsonPath(rootPath: string): string {
     return path.join(rootPath, SHADPS4_KEYS_FILE_NAME);
 }
@@ -345,18 +350,92 @@ function createStaticBloodbornePatchCatalog(): BloodbornePatchCatalogItem[] {
     }));
 }
 
-function disableBloodbornePatchEnablement(xmlContent: string): string {
+function createUniquePatchIdList(patchIds: readonly string[]): string[] {
+    return [...new Set(patchIds.map((patchId) => patchId.trim()).filter(Boolean))];
+}
+
+function readBloodbornePatchIdFromMetadataTag(metadataTag: string): string | null {
+    const attributes = readMetadataAttributes(metadataTag);
+    const metadataName = attributes['Name']?.trim();
+
+    if (!metadataName) {
+        return null;
+    }
+
+    return getBloodbornePatchByMetadataName(metadataName)?.id ?? createFallbackPatchId(metadataName);
+}
+
+function normalizeBloodbornePatchEnablementValue(value: unknown): string[] {
+    if (Array.isArray(value)) {
+        return createUniquePatchIdList(value.filter((patchId): patchId is string => typeof patchId === 'string'));
+    }
+
+    if (isRecord(value) && Array.isArray(value['enabledPatchIds'])) {
+        return createUniquePatchIdList(
+            value['enabledPatchIds'].filter((patchId): patchId is string => typeof patchId === 'string')
+        );
+    }
+
+    return [];
+}
+
+function sanitizeBloodbornePatchIds(patchIds: readonly string[], catalog: readonly BloodbornePatchCatalogItem[]): string[] {
+    const availablePatchIds = new Set(catalog.map((patch) => patch.id));
+    return createUniquePatchIdList(patchIds).filter((patchId) => availablePatchIds.has(patchId));
+}
+
+function readEnabledBloodbornePatchIdsFromXml(xmlContent: string): string[] {
+    const enabledPatchIds: string[] = [];
+
+    for (const match of xmlContent.matchAll(XML_METADATA_TAG_PATTERN)) {
+        const metadataTag = match[0];
+        const patchId = readBloodbornePatchIdFromMetadataTag(metadataTag);
+
+        if (!patchId) {
+            continue;
+        }
+
+        const attributes = readMetadataAttributes(metadataTag);
+        if (attributes['isEnabled']?.toLowerCase() === 'true') {
+            enabledPatchIds.push(patchId);
+        }
+    }
+
+    return createUniquePatchIdList(enabledPatchIds);
+}
+
+function writeBloodbornePatchEnabledAttribute(metadataTag: string, isEnabled: boolean): string {
+    const enabledValue = isEnabled ? 'true' : 'false';
+
+    if (/\sisEnabled="[^"]*"/.test(metadataTag)) {
+        return metadataTag.replace(/\sisEnabled="[^"]*"/, ` isEnabled="${enabledValue}"`);
+    }
+
+    const closingToken = metadataTag.endsWith('/>') ? '/>' : '>';
+    return `${metadataTag.slice(0, -closingToken.length)} isEnabled="${enabledValue}"${closingToken}`;
+}
+
+function applyBloodbornePatchEnablement(xmlContent: string, enabledPatchIds: readonly string[]): string {
+    const enabledPatchIdSet = new Set(enabledPatchIds);
+
     return xmlContent.replace(XML_METADATA_TAG_PATTERN, (metadataTag) => {
-        if (!/\sName="[^"]*"/.test(metadataTag)) {
+        const patchId = readBloodbornePatchIdFromMetadataTag(metadataTag);
+
+        if (!patchId) {
             return metadataTag;
         }
 
-        if (/\sisEnabled="[^"]*"/.test(metadataTag)) {
-            return metadataTag.replace(/\sisEnabled="[^"]*"/, ' isEnabled="false"');
+        return writeBloodbornePatchEnabledAttribute(metadataTag, enabledPatchIdSet.has(patchId));
+    });
+}
+
+function disableBloodbornePatchEnablement(xmlContent: string): string {
+    return xmlContent.replace(XML_METADATA_TAG_PATTERN, (metadataTag) => {
+        if (!readBloodbornePatchIdFromMetadataTag(metadataTag)) {
+            return metadataTag;
         }
 
-        const closingToken = metadataTag.endsWith('/>') ? '/>' : '>';
-        return `${metadataTag.slice(0, -closingToken.length)} isEnabled="false"${closingToken}`;
+        return writeBloodbornePatchEnabledAttribute(metadataTag, false);
     });
 }
 
@@ -787,6 +866,68 @@ async function ensureBloodbornePatchIndexFile(rootPath: string): Promise<void> {
     await writeJsonFile(patchIndexPath, {
         [BLOODBORNE_PATCH_FILE_NAME]: [...BLOODBORNE_TITLE_IDS]
     });
+}
+
+async function readBloodbornePatchEnablementStateFile(rootPath: string): Promise<string[] | null> {
+    const patchStatePath = resolveShadps4PatchStatePath(rootPath);
+
+    if (!(await pathExists(patchStatePath))) {
+        return null;
+    }
+
+    try {
+        return normalizeBloodbornePatchEnablementValue(await readJsonFile<unknown>(patchStatePath));
+    } catch (error) {
+        console.warn(`Failed to read Bloodborne patch state from ${patchStatePath}.`, error);
+        return null;
+    }
+}
+
+async function writeBloodbornePatchEnablementStateFile(rootPath: string, enabledPatchIds: readonly string[]): Promise<void> {
+    await writeJsonFile(resolveShadps4PatchStatePath(rootPath), createUniquePatchIdList(enabledPatchIds));
+}
+
+async function readBloodbornePatchXmlEnablement(rootPath: string): Promise<string[]> {
+    const patchPath = resolveShadps4BloodbornePatchPath(rootPath);
+
+    if (!(await pathExists(patchPath))) {
+        return [];
+    }
+
+    return readEnabledBloodbornePatchIdsFromXml(await readFile(patchPath, 'utf8'));
+}
+
+async function writeBloodbornePatchXmlEnablement(rootPath: string, enabledPatchIds: readonly string[]): Promise<void> {
+    const patchPath = resolveShadps4BloodbornePatchPath(rootPath);
+
+    if (!(await pathExists(patchPath))) {
+        await ensureBloodbornePatchFile(rootPath);
+    }
+
+    if (!(await pathExists(patchPath))) {
+        return;
+    }
+
+    const currentContent = await readFile(patchPath, 'utf8');
+    const nextContent = applyBloodbornePatchEnablement(currentContent, enabledPatchIds);
+
+    if (nextContent === currentContent) {
+        return;
+    }
+
+    await writeTextFile(patchPath, nextContent);
+    bloodbornePatchContentPromise = Promise.resolve(nextContent);
+}
+
+async function readBloodbornePatchCatalogFromRoot(rootPath: string): Promise<BloodbornePatchCatalogItem[]> {
+    const patchPath = resolveShadps4BloodbornePatchPath(rootPath);
+
+    if (!(await pathExists(patchPath))) {
+        return createStaticBloodbornePatchCatalog();
+    }
+
+    const catalog = readBloodbornePatchCatalogFromXml(await readFile(patchPath, 'utf8'));
+    return catalog.length > 0 ? catalog : createStaticBloodbornePatchCatalog();
 }
 
 async function resolveShadps4UserDataRootPathForBootstrapState(bootstrapState: LauncherBootstrapState): Promise<string> {
@@ -1286,14 +1427,54 @@ export async function readBloodbornePatchCatalog(
     bootstrapState: LauncherBootstrapState
 ): Promise<BloodbornePatchCatalogItem[]> {
     const rootPath = await resolveShadps4UserDataRootPathForBootstrapState(bootstrapState);
-    const patchPath = resolveShadps4BloodbornePatchPath(rootPath);
+    return readBloodbornePatchCatalogFromRoot(rootPath);
+}
 
-    if (!(await pathExists(patchPath))) {
-        return createStaticBloodbornePatchCatalog();
+export async function readBloodbornePatchEnablement(
+    bootstrapState: LauncherBootstrapState
+): Promise<BloodbornePatchEnablementState> {
+    const rootPath = await resolveShadps4UserDataRootPathForBootstrapState(bootstrapState);
+    const catalog = await readBloodbornePatchCatalogFromRoot(rootPath);
+    const storedPatchIds = await readBloodbornePatchEnablementStateFile(rootPath);
+    const enabledPatchIds = sanitizeBloodbornePatchIds(
+        storedPatchIds ?? (await readBloodbornePatchXmlEnablement(rootPath)),
+        catalog
+    );
+
+    if (!storedPatchIds || storedPatchIds.length !== enabledPatchIds.length) {
+        await writeBloodbornePatchEnablementStateFile(rootPath, enabledPatchIds);
     }
 
-    const catalog = readBloodbornePatchCatalogFromXml(await readFile(patchPath, 'utf8'));
-    return catalog.length > 0 ? catalog : createStaticBloodbornePatchCatalog();
+    return {
+        enabledPatchIds
+    };
+}
+
+export async function saveBloodbornePatchEnablement(
+    bootstrapState: LauncherBootstrapState,
+    state: BloodbornePatchEnablementState
+): Promise<BloodbornePatchEnablementState> {
+    const rootPath = await resolveShadps4UserDataRootPathForBootstrapState(bootstrapState);
+    const catalog = await readBloodbornePatchCatalogFromRoot(rootPath);
+    const enabledPatchIds = sanitizeBloodbornePatchIds(state.enabledPatchIds, catalog);
+
+    await writeBloodbornePatchEnablementStateFile(rootPath, enabledPatchIds);
+    await writeBloodbornePatchXmlEnablement(rootPath, enabledPatchIds);
+
+    return {
+        enabledPatchIds
+    };
+}
+
+export async function syncBloodbornePatchEnablement(
+    bootstrapState: LauncherBootstrapState
+): Promise<BloodbornePatchEnablementState> {
+    const rootPath = await resolveShadps4UserDataRootPathForBootstrapState(bootstrapState);
+    const currentState = await readBloodbornePatchEnablement(bootstrapState);
+
+    await writeBloodbornePatchXmlEnablement(rootPath, currentState.enabledPatchIds);
+
+    return currentState;
 }
 
 export async function updateBloodbornePatchFile(
@@ -1308,7 +1489,11 @@ export async function updateBloodbornePatchFile(
     try {
         const rootPath = await resolveShadps4UserDataRootPathForBootstrapState(bootstrapState);
         const patchPath = resolveShadps4BloodbornePatchPath(rootPath);
+        const storedPatchIds = await readBloodbornePatchEnablementStateFile(rootPath);
+        const enabledPatchIdsBeforeUpdate = storedPatchIds ?? (await readBloodbornePatchXmlEnablement(rootPath));
         const patchContent = disableBloodbornePatchEnablement(await downloadBloodbornePatchContentWithUpdateStatus());
+        const nextCatalog = readBloodbornePatchCatalogFromXml(patchContent);
+        const normalizedEnabledPatchIds = sanitizeBloodbornePatchIds(enabledPatchIdsBeforeUpdate, nextCatalog);
 
         setBloodbornePatchUpdateStatus({
             key: 'patch.update.writing',
@@ -1319,6 +1504,7 @@ export async function updateBloodbornePatchFile(
 
         await writeTextFile(patchPath, patchContent);
         await ensureBloodbornePatchIndexFile(rootPath);
+        await writeBloodbornePatchEnablementStateFile(rootPath, normalizedEnabledPatchIds);
 
         bloodbornePatchContentPromise = Promise.resolve(patchContent);
 
@@ -1329,7 +1515,7 @@ export async function updateBloodbornePatchFile(
             error: null
         });
 
-        return readBloodbornePatchCatalogFromXml(patchContent);
+        return nextCatalog;
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown patch update error.';
         setBloodbornePatchUpdateStatus({

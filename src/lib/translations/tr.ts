@@ -307,6 +307,12 @@ export const trTree = {
             complete: 'Güncel',
             failed: 'Güncelleme başarısız'
         },
+        sync: {
+            button: 'Senkronize',
+            syncing: 'Senkronize ediliyor...',
+            complete: 'Senkronize edildi',
+            failed: 'Senkronizasyon başarısız'
+        },
         search: {
             placeholder: 'Patch ara',
             clear: 'Temizle',

@@ -15,6 +15,9 @@ export const PLATFORM_COMMANDS = {
     GET_LAUNCHER_BOOTSTRAP_STATE: 'app:get-launcher-bootstrap-state',
     GET_SPLASH_STATUS: 'app:get-splash-status',
     GET_BLOODBORNE_PATCH_CATALOG: 'patches:get-bloodborne-catalog',
+    GET_BLOODBORNE_PATCH_ENABLEMENT: 'patches:get-bloodborne-enablement',
+    SAVE_BLOODBORNE_PATCH_ENABLEMENT: 'patches:save-bloodborne-enablement',
+    SYNC_BLOODBORNE_PATCH_ENABLEMENT: 'patches:sync-bloodborne-enablement',
     UPDATE_BLOODBORNE_PATCHES: 'patches:update-bloodborne',
     GET_BLOODBORNE_PATCH_UPDATE_STATUS: 'patches:get-bloodborne-update-status',
     PICK_BLOODBORNE_DIRECTORY: 'app:pick-bloodborne-directory',
@@ -43,6 +46,10 @@ export interface BloodbornePatchUpdateStatusSnapshot {
     progress: number | null;
     isUpdating: boolean;
     error: string | null;
+}
+
+export interface BloodbornePatchEnablementState {
+    enabledPatchIds: string[];
 }
 
 export interface Shadps4UpdateCommit {
@@ -178,6 +185,21 @@ export interface PlatformCommandMap {
     [PLATFORM_COMMANDS.GET_BLOODBORNE_PATCH_CATALOG]: {
         payload: undefined;
         result: BloodbornePatchCatalogItem[];
+    };
+
+    [PLATFORM_COMMANDS.GET_BLOODBORNE_PATCH_ENABLEMENT]: {
+        payload: undefined;
+        result: BloodbornePatchEnablementState;
+    };
+
+    [PLATFORM_COMMANDS.SAVE_BLOODBORNE_PATCH_ENABLEMENT]: {
+        payload: BloodbornePatchEnablementState;
+        result: BloodbornePatchEnablementState;
+    };
+
+    [PLATFORM_COMMANDS.SYNC_BLOODBORNE_PATCH_ENABLEMENT]: {
+        payload: undefined;
+        result: BloodbornePatchEnablementState;
     };
 
     [PLATFORM_COMMANDS.UPDATE_BLOODBORNE_PATCHES]: {

@@ -308,6 +308,12 @@ export const enTree = {
             complete: 'Updated',
             failed: 'Update failed'
         },
+        sync: {
+            button: 'Sync',
+            syncing: 'Synchronizing...',
+            complete: 'Synchronized',
+            failed: 'Sync failed'
+        },
         search: {
             placeholder: 'Search patches',
             clear: 'Clear',

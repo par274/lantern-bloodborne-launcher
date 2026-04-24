@@ -14,11 +14,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	import {
-		PLATFORM_COMMANDS,
-		type BloodbornePatchCatalogItem,
-		type BloodbornePatchUpdateStatusSnapshot
-	} from '$lib/contracts/commands';
+	import { PLATFORM_COMMANDS, type BloodbornePatchCatalogItem, type BloodbornePatchUpdateStatusSnapshot } from '$lib/contracts/commands';
 	import { t } from '$lib/i18n';
 	import { BLOODBORNE_PATCHES, getBloodbornePatchByMetadataName } from '$lib/patches/bloodbornePatches';
 	import type { TranslationKey } from '$lib/translations/translations';
@@ -52,6 +48,7 @@
 		isUpdating: false,
 		error: null
 	};
+	const PATCH_SYNC_STATUS_CLEAR_DELAY_MS = 1600;
 
 	let {
 		inputMode,
@@ -71,8 +68,11 @@
 	let enabledPatchIds = $state<string[]>([]);
 	let patchCatalog = $state<BloodbornePatch[]>(createStaticPatchCatalog());
 	let patchUpdateStatus = $state<BloodbornePatchUpdateStatusSnapshot>(DEFAULT_PATCH_UPDATE_STATUS);
+	let patchSyncStatusKey = $state<TranslationKey | null>(null);
+	let isPatchSyncing = $state(false);
 	let patchListElement = $state<HTMLDivElement | undefined>(undefined);
 	let patchSearchInput = $state<HTMLInputElement | undefined>(undefined);
+	let patchSaveVersion = 0;
 
 	let isControllerInputActive = $derived(inputMode !== 'keyboard' && (isXboxControllerConnected || isDualSenseControllerConnected));
 	let isVirtualKeyboardOpen = $derived(isPatchSearchFocused && isControllerInputActive);
@@ -160,6 +160,10 @@
 		);
 	}
 
+	function normalizePatchIds(patchIds: readonly string[]): string[] {
+		return [...new Set(patchIds.map((patchId) => patchId.trim()).filter(Boolean))];
+	}
+
 	function resolvePatchUpdateStatusKey(key: string): TranslationKey {
 		switch (key) {
 			case 'patch.update.downloading':
@@ -173,6 +177,14 @@
 			default:
 				return 'patch.update.idle';
 		}
+	}
+
+	function clearPatchSyncStatusSoon() {
+		window.setTimeout(() => {
+			if (!isPatchSyncing) {
+				patchSyncStatusKey = null;
+			}
+		}, PATCH_SYNC_STATUS_CLEAR_DELAY_MS);
 	}
 
 	function scrollPatchSelectionIntoView(patchIndex = selectedPatchIndex) {
@@ -232,6 +244,19 @@
 		}
 	}
 
+	async function refreshPatchEnablement() {
+		if (!platformApi.isAvailable) {
+			return;
+		}
+
+		try {
+			const nextState = await platformApi.invoke(PLATFORM_COMMANDS.GET_BLOODBORNE_PATCH_ENABLEMENT, undefined);
+			enabledPatchIds = nextState.enabledPatchIds;
+		} catch (error) {
+			console.warn('Bloodborne patch enablement could not be loaded.', error);
+		}
+	}
+
 	async function refreshPatchUpdateStatus() {
 		if (!platformApi.isAvailable) {
 			return;
@@ -245,12 +270,11 @@
 	}
 
 	async function updateBloodbornePatches() {
-		if (!platformApi.isAvailable || patchUpdateStatus.isUpdating) {
+		if (!platformApi.isAvailable || patchUpdateStatus.isUpdating || isPatchSyncing) {
 			return;
 		}
 
 		playEnterSound();
-		enabledPatchIds = [];
 		patchUpdateStatus = {
 			key: 'patch.update.downloading',
 			progress: 0,
@@ -263,10 +287,60 @@
 			patchCatalog = nextCatalog.map(createPatchCatalogItem);
 			selectedPatchIndex = 0;
 			setPatchSearchQuery('');
+			await refreshPatchEnablement();
 			await refreshPatchUpdateStatus();
 		} catch (error) {
 			await refreshPatchUpdateStatus();
 			console.warn('Bloodborne patches could not be updated.', error);
+		}
+	}
+
+	async function saveEnabledPatchIds(nextPatchIds: readonly string[]) {
+		const saveVersion = ++patchSaveVersion;
+		const nextEnabledPatchIds = normalizePatchIds(nextPatchIds);
+
+		enabledPatchIds = nextEnabledPatchIds;
+
+		if (!platformApi.isAvailable) {
+			return;
+		}
+
+		try {
+			const nextState = await platformApi.invoke(PLATFORM_COMMANDS.SAVE_BLOODBORNE_PATCH_ENABLEMENT, {
+				enabledPatchIds: nextEnabledPatchIds
+			});
+
+			if (saveVersion === patchSaveVersion) {
+				enabledPatchIds = nextState.enabledPatchIds;
+			}
+		} catch (error) {
+			if (saveVersion === patchSaveVersion) {
+				await refreshPatchEnablement();
+			}
+
+			console.warn('Bloodborne patch enablement could not be saved.', error);
+		}
+	}
+
+	async function syncBloodbornePatches() {
+		if (!platformApi.isAvailable || patchUpdateStatus.isUpdating || isPatchSyncing) {
+			return;
+		}
+
+		playEnterSound();
+		isPatchSyncing = true;
+		patchSyncStatusKey = 'patch.sync.syncing';
+
+		try {
+			const nextState = await platformApi.invoke(PLATFORM_COMMANDS.SYNC_BLOODBORNE_PATCH_ENABLEMENT, undefined);
+			enabledPatchIds = nextState.enabledPatchIds;
+			patchSyncStatusKey = 'patch.sync.complete';
+		} catch (error) {
+			patchSyncStatusKey = 'patch.sync.failed';
+			console.warn('Bloodborne patches could not be synchronized.', error);
+		} finally {
+			isPatchSyncing = false;
+			clearPatchSyncStatusSoon();
 		}
 	}
 
@@ -327,12 +401,16 @@
 	}
 
 	function togglePatch(patch: BloodbornePatch) {
-		if (isPatchEnabled(patch)) {
-			enabledPatchIds = enabledPatchIds.filter((patchId) => patchId !== patch.id);
+		if (patchUpdateStatus.isUpdating || isPatchSyncing) {
 			return;
 		}
 
-		enabledPatchIds = [...enabledPatchIds, patch.id];
+		if (isPatchEnabled(patch)) {
+			void saveEnabledPatchIds(enabledPatchIds.filter((patchId) => patchId !== patch.id));
+			return;
+		}
+
+		void saveEnabledPatchIds([...enabledPatchIds, patch.id]);
 	}
 
 	function toggleSelectedPatch() {
@@ -498,6 +576,7 @@
 
 	export function deleteText() {
 		if (!isVirtualKeyboardOpen) {
+			void syncBloodbornePatches();
 			return;
 		}
 
@@ -520,6 +599,7 @@
 
 	onMount(() => {
 		void refreshPatchCatalog();
+		void refreshPatchEnablement();
 
 		if (!isControllerInputActive) {
 			requestAnimationFrame(() => {
@@ -565,7 +645,7 @@
 						</div>
 						<button
 							class="inline-flex items-center px-3.5 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#f0ddb0]/76 transition hover:text-[#fff2cb] disabled:cursor-wait disabled:opacity-50"
-							disabled={patchUpdateStatus.isUpdating}
+							disabled={patchUpdateStatus.isUpdating || isPatchSyncing}
 							onclick={updateBloodbornePatches}
 						>
 							{#if isControllerInputActive && (inputMode === 'xbox' || inputMode === 'dualsense')}
@@ -581,6 +661,26 @@
 								</span>
 							{:else}
 								<span>{$t('patch.update.button')}</span>
+							{/if}
+						</button>
+						<button
+							class="inline-flex items-center border-l border-[#c8b27a]/12 px-3.5 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#f0ddb0]/76 transition hover:text-[#fff2cb] disabled:cursor-wait disabled:opacity-50"
+							disabled={patchUpdateStatus.isUpdating || isPatchSyncing}
+							onclick={syncBloodbornePatches}
+						>
+							{#if isControllerInputActive && (inputMode === 'xbox' || inputMode === 'dualsense')}
+								<span
+									class="inline-flex items-center gap-1.5 rounded-full border border-[#c8b27a]/16 bg-black/26 px-2 py-1 text-[0.52rem] tracking-[0.14em] text-[#f0ddb0]/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+								>
+									{#if inputMode === 'xbox'}
+										<AppIcon name="xbox-x" />
+									{:else}
+										<AppIcon name="dualsense-square" />
+									{/if}
+									<span>{$t('patch.sync.button')}</span>
+								</span>
+							{:else}
+								<span>{$t('patch.sync.button')}</span>
 							{/if}
 						</button>
 						<a
@@ -608,6 +708,17 @@
 									class="h-full rounded-full bg-[#c8b27a]/74 transition-[width] duration-150"
 									style={`width: ${patchUpdateStatus.progress ?? 100}%`}
 								></div>
+							</div>
+						</div>
+					{:else if patchSyncStatusKey}
+						<div class="mt-2 min-w-0">
+							<div
+								class="flex items-center justify-between gap-3 text-[0.56rem] font-semibold uppercase tracking-[0.18em] text-white/42"
+							>
+								<span>{$t(patchSyncStatusKey)}</span>
+							</div>
+							<div class="mt-1 h-1.5 overflow-hidden rounded-full bg-black/34">
+								<div class="h-full w-full rounded-full bg-[#c8b27a]/74 transition-[width] duration-150"></div>
 							</div>
 						</div>
 					{/if}
