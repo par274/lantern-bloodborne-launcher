@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 
 	import { PLATFORM_COMMANDS } from '$lib/contracts/commands';
@@ -41,6 +42,10 @@
 	}
 
 	function getStatusKey(): SplashTranslationKey {
+		if (!browser) {
+			return 'splash.checkingSettings';
+		}
+
 		if (!platformApi.isAvailable) {
 			return 'splash.platformUnavailable';
 		}
