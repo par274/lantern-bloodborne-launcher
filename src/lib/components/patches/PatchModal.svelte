@@ -24,6 +24,7 @@
 	import type { TranslationKey } from '$lib/translations/translations';
 	import { platformApi } from '$platform/renderer/api';
 
+	import AppIcon from '$lib/components/AppIcon.svelte';
 	import InputPrompts from '$lib/components/InputPrompts.svelte';
 	import VirtualKeyboard, { VIRTUAL_KEYBOARD_ROWS, type VirtualKeyboardKey } from '$lib/components/VirtualKeyboard.svelte';
 	import type { InputMode } from '$lib/components/gamepad';
@@ -572,28 +573,9 @@
 									class="inline-flex items-center gap-1.5 rounded-full border border-[#c8b27a]/16 bg-black/26 px-2 py-1 text-[0.52rem] tracking-[0.14em] text-[#f0ddb0]/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
 								>
 									{#if inputMode === 'xbox'}
-										<span
-											class="flex h-[16px] w-[16px] items-center justify-center rounded-full border border-yellow-200/45 bg-yellow-400/10 text-[0.58rem] font-black leading-none text-yellow-100 drop-shadow-[0_0_6px_rgba(250,204,21,0.5)]"
-											aria-hidden="true"
-										>
-											Y
-										</span>
+										<AppIcon name="xbox-y" />
 									{:else}
-										<span
-											class="flex h-[16px] w-[16px] items-center justify-center rounded-full border border-[#67e8f9]/42 bg-[#07131a]/80 text-[#67e8f9] drop-shadow-[0_0_6px_rgba(103,232,249,0.45)]"
-											aria-hidden="true"
-										>
-											<svg
-												class="h-[10px] w-[10px]"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2.3"
-												stroke-linejoin="round"
-											>
-												<path d="M12 4l8 16H4z" />
-											</svg>
-										</span>
+										<AppIcon name="dualsense-triangle" />
 									{/if}
 									<span>{$t('patch.update.button')}</span>
 								</span>
@@ -635,18 +617,7 @@
 					<div
 						class="flex items-center gap-3 rounded-[18px] border border-[#c8b27a]/14 bg-black/24 px-3.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition focus-within:border-[#c8b27a]/34 focus-within:bg-black/34"
 					>
-						<svg
-							class="h-[17px] w-[17px] shrink-0 text-[#ccb57a]/58"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						>
-							<path d="M10 18a8 8 0 1 1 5.3 -14a8 8 0 0 1 -5.3 14z" />
-							<path d="M16 16l5 5" />
-						</svg>
+						<AppIcon name="search" class="h-[17px] w-[17px] shrink-0 text-[#ccb57a]/58" />
 						<input
 							bind:this={patchSearchInput}
 							class="min-w-0 flex-1 border-0 bg-transparent text-[0.82rem] font-semibold tracking-[0.02em] text-[#f4ead0] outline-none placeholder:text-white/28"

@@ -300,20 +300,24 @@ body {
     background: rgb(200 178 122 / 0.045);
 }
 
-.patch-list {
+.patch-list,
+.patch-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgb(200 178 122 / 0.35) rgb(0 0 0 / 0.16);
 }
 
-.patch-list::-webkit-scrollbar {
+.patch-list::-webkit-scrollbar,
+.patch-scrollbar::-webkit-scrollbar {
     width: 8px;
 }
 
-.patch-list::-webkit-scrollbar-track {
+.patch-list::-webkit-scrollbar-track,
+.patch-scrollbar::-webkit-scrollbar-track {
     background: rgb(0 0 0 / 0.16);
 }
 
-.patch-list::-webkit-scrollbar-thumb {
+.patch-list::-webkit-scrollbar-thumb,
+.patch-scrollbar::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: rgb(200 178 122 / 0.35);
 }

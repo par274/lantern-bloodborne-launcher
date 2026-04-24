@@ -5,9 +5,10 @@
 	import { PLATFORM_COMMANDS } from '$lib/contracts/commands';
 	import { type BloodborneInstallError, type LauncherBootstrapState } from '$lib/contracts/launcherConfig';
 	import { localeOptions, locales, setLocale, t, type AppLocale, type TranslationKey } from '$lib/i18n';
-	import { platformApi } from '$platform/renderer/api';
 
+	import AppIcon from '$lib/components/AppIcon.svelte';
 	import AppLoading from '$lib/components/AppLoading.svelte';
+	import { platformApi } from '$platform/renderer/api';
 
 	type SplashTranslationKey = Extract<TranslationKey, `splash.${string}`>;
 
@@ -246,21 +247,7 @@
 							class="relative overflow-hidden rounded-[1.35rem] border border-[#f2e4b6]/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.22))] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-colors duration-200 focus-within:border-[#f2e4b6]/32 focus-within:shadow-[0_0_0_1px_rgba(242,228,182,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]"
 						>
 							<div class="pointer-events-none absolute inset-y-0 left-4 flex items-center text-[#f2e4b6]/42">
-								<svg
-									class="h-[18px] w-[18px]"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="1.7"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									aria-hidden="true"
-								>
-									<circle cx="12" cy="12" r="9" />
-									<path d="M3 12h18" />
-									<path d="M12 3a14.5 14.5 0 0 1 0 18" />
-									<path d="M12 3a14.5 14.5 0 0 0 0 18" />
-								</svg>
+								<AppIcon name="globe" class="h-[18px] w-[18px]" />
 							</div>
 
 							<select
@@ -281,18 +268,7 @@
 							</select>
 
 							<div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#f2e4b6]/46">
-								<svg
-									class="h-[16px] w-[16px]"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="1.8"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									aria-hidden="true"
-								>
-									<path d="m6 9 6 6 6-6" />
-								</svg>
+								<AppIcon name="chevron-down" class="h-[16px] w-[16px]" />
 							</div>
 						</div>
 					</label>

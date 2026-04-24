@@ -1,4 +1,6 @@
 <script module lang="ts">
+	import type { Shadps4UpdateConfirmModalController } from '$lib/components/emulator/Shadps4UpdateConfirmModal.svelte';
+
 	export type Shadps4ModalController = {
 		enterSelected: () => void;
 		goBack: () => void;
@@ -12,12 +14,14 @@
 </script>
 
 <script lang="ts">
-	import { PLATFORM_COMMANDS } from '$lib/contracts/commands';
+	import { PLATFORM_COMMANDS, type Shadps4UpdateChangelog } from '$lib/contracts/commands';
 	import type { Shadps4InstallStatus } from '$lib/contracts/launcherConfig';
 	import { t } from '$lib/i18n';
 	import type { TranslationKey } from '$lib/translations/translations';
 	import { platformApi } from '$platform/renderer/api';
 
+	import AppIcon from '$lib/components/AppIcon.svelte';
+	import Shadps4UpdateConfirmModal from '$lib/components/emulator/Shadps4UpdateConfirmModal.svelte';
 	import InputPrompts from '$lib/components/InputPrompts.svelte';
 	import type { InputMode } from '$lib/components/gamepad';
 
@@ -42,6 +46,11 @@
 	let updateStatus = $state<UpdateStatus>('idle');
 	let isUpdating = $state(false);
 	let updateProgress = $state<number | null>(null);
+	let isUpdatePreviewOpen = $state(false);
+	let isLoadingChangelog = $state(false);
+	let changelogErrorMessage = $state<string | null>(null);
+	let updateChangelog = $state<Shadps4UpdateChangelog | null>(null);
+	let updateConfirmModal = $state<Shadps4UpdateConfirmModalController | undefined>(undefined);
 
 	let isControllerInputActive = $derived(inputMode !== 'keyboard' && (isXboxControllerConnected || isDualSenseControllerConnected));
 	let commit = $derived(resolveCommit(shadps4?.version ?? null));
@@ -78,12 +87,11 @@
 		}
 	}
 
-	async function updateShadps4() {
+	async function performShadps4Update() {
 		if (isUpdating) {
 			return;
 		}
 
-		playEnterSound();
 		isUpdating = true;
 		updateStatus = 'checking';
 		updateProgress = 0;
@@ -106,6 +114,39 @@
 		}
 	}
 
+	async function openUpdatePreview() {
+		if (isUpdating || isLoadingChangelog) {
+			return;
+		}
+
+		playEnterSound();
+		isUpdatePreviewOpen = true;
+		isLoadingChangelog = true;
+		changelogErrorMessage = null;
+
+		try {
+			updateChangelog = await platformApi.invoke(PLATFORM_COMMANDS.GET_SHADPS4_UPDATE_CHANGELOG, undefined);
+		} catch (error) {
+			console.warn('shadPS4 changelog could not be loaded.', error);
+			updateChangelog = null;
+			changelogErrorMessage = error instanceof Error ? error.message : $t('emulator.update.failedToLoad');
+		} finally {
+			isLoadingChangelog = false;
+		}
+	}
+
+	function closeUpdatePreview() {
+		isUpdatePreviewOpen = false;
+		isLoadingChangelog = false;
+		changelogErrorMessage = null;
+	}
+
+	async function confirmUpdate() {
+		closeUpdatePreview();
+		playEnterSound();
+		await performShadps4Update();
+	}
+
 	async function refreshProgress() {
 		if (!platformApi.isAvailable) {
 			return;
@@ -125,21 +166,55 @@
 	}
 
 	export function enterSelected() {
-		void updateShadps4();
+		if (isUpdatePreviewOpen) {
+			updateConfirmModal?.enterSelected();
+			return;
+		}
+
+		void openUpdatePreview();
 	}
 
 	export function confirmText() {
-		void updateShadps4();
+		if (isUpdatePreviewOpen) {
+			updateConfirmModal?.confirmText();
+			return;
+		}
+
+		void openUpdatePreview();
 	}
 
 	export function goBack() {
+		if (isUpdatePreviewOpen) {
+			updateConfirmModal?.goBack();
+			return;
+		}
+
 		close();
 	}
 
-	export function moveUp() {}
-	export function moveDown() {}
-	export function moveLeft() {}
-	export function moveRight() {}
+	export function moveUp() {
+		if (isUpdatePreviewOpen) {
+			updateConfirmModal?.moveUp();
+		}
+	}
+
+	export function moveDown() {
+		if (isUpdatePreviewOpen) {
+			updateConfirmModal?.moveDown();
+		}
+	}
+
+	export function moveLeft() {
+		if (isUpdatePreviewOpen) {
+			updateConfirmModal?.moveLeft();
+		}
+	}
+
+	export function moveRight() {
+		if (isUpdatePreviewOpen) {
+			updateConfirmModal?.moveRight();
+		}
+	}
 	export function deleteText() {}
 </script>
 
@@ -184,7 +259,7 @@
 					class="border-r border-[#c8b27a]/12 px-3.5 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#f0ddb0]/76 transition hover:text-[#fff2cb] hover:underline"
 					href={SHADPS4_GITHUB_URL}
 					target="_blank"
-					rel="noreferrer"
+					rel="noopener noreferrer"
 				>
 					GitHub
 				</a>
@@ -192,7 +267,7 @@
 					class="px-3.5 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.12em] text-[#ccb57a]/66 transition hover:text-[#fff2cb] hover:underline"
 					href={SHADPS4_GITHUB_MAIN_URL}
 					target="_blank"
-					rel="noreferrer"
+					rel="noopener noreferrer"
 				>
 					main
 				</a>
@@ -200,7 +275,7 @@
 					class="pointer-events-none absolute left-0 top-[calc(100%+0.45rem)] z-40 max-w-[360px] rounded-[12px] border border-[#c8b27a]/14 bg-black/82 px-3 py-2 text-[0.58rem] font-semibold tracking-[0.08em] text-white/52 opacity-0 shadow-[0_14px_34px_rgba(0,0,0,0.42)] backdrop-blur-[6px] transition duration-150 hover:text-[#f1ddb0] hover:underline group-hover:pointer-events-auto group-hover:opacity-100"
 					href={SHADPS4_GITHUB_MAIN_URL}
 					target="_blank"
-					rel="noreferrer"
+					rel="noopener noreferrer"
 				>
 					{SHADPS4_GITHUB_MAIN_URL}
 				</a>
@@ -209,35 +284,16 @@
 			<button
 				class="inline-flex items-center rounded-full border border-[#c8b27a]/16 bg-black/24 px-3.5 py-2 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#f0ddb0]/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:text-[#fff2cb] disabled:cursor-wait disabled:opacity-50"
 				disabled={isUpdating}
-				onclick={updateShadps4}
+				onclick={openUpdatePreview}
 			>
 				{#if isControllerInputActive && (inputMode === 'xbox' || inputMode === 'dualsense')}
 					<span
 						class="mr-2 inline-flex items-center gap-1.5 rounded-full border border-[#c8b27a]/16 bg-black/26 px-2 py-1 text-[0.52rem] tracking-[0.14em] text-[#f0ddb0]/82"
 					>
 						{#if inputMode === 'xbox'}
-							<span
-								class="flex h-[16px] w-[16px] items-center justify-center rounded-full border border-yellow-200/45 bg-yellow-400/10 text-[0.58rem] font-black leading-none text-yellow-100 drop-shadow-[0_0_6px_rgba(250,204,21,0.5)]"
-								aria-hidden="true"
-							>
-								Y
-							</span>
+							<AppIcon name="xbox-y" />
 						{:else}
-							<span
-								class="flex h-[16px] w-[16px] items-center justify-center rounded-full border border-[#67e8f9]/42 bg-[#07131a]/80 text-[#67e8f9] drop-shadow-[0_0_6px_rgba(103,232,249,0.45)]"
-								aria-hidden="true"
-							>
-								<svg
-									class="h-[10px] w-[10px]"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.3"
-									stroke-linejoin="round"
-								>
-									<path d="M12 4l8 16H4z" />
-								</svg>
-							</span>
+							<AppIcon name="dualsense-triangle" />
 						{/if}
 					</span>
 				{/if}
@@ -319,4 +375,19 @@
 			{isDualSenseControllerConnected}
 		/>
 	</section>
+
+	{#if isUpdatePreviewOpen}
+		<Shadps4UpdateConfirmModal
+			bind:this={updateConfirmModal}
+			{inputMode}
+			{isXboxControllerConnected}
+			{isDualSenseControllerConnected}
+			changelog={updateChangelog}
+			isLoading={isLoadingChangelog}
+			errorMessage={changelogErrorMessage}
+			onCancel={closeUpdatePreview}
+			onConfirm={confirmUpdate}
+			{playEnterSound}
+		/>
+	{/if}
 </div>

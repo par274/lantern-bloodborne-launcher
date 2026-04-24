@@ -1,9 +1,10 @@
-import type { LauncherBootstrapState, PickBloodborneDirectoryResult } from './launcherConfig';
+import type { EmulatorChannel, LauncherBootstrapState, PickBloodborneDirectoryResult } from './launcherConfig';
 
 export const PLATFORM_COMMANDS = {
     APP_EXIT: 'app:exit',
     LAUNCH_GAME: 'launcher:start-game',
     UPDATE_SHADPS4: 'emulator:update-shadps4',
+    GET_SHADPS4_UPDATE_CHANGELOG: 'emulator:get-shadps4-update-changelog',
     GET_SHADPS4_GRAPHICS_SETTINGS: 'emulator:get-graphics-settings',
     SAVE_SHADPS4_GRAPHICS_SETTINGS: 'emulator:save-graphics-settings',
     GET_SHADPS4_GENERAL_SETTINGS: 'emulator:get-general-settings',
@@ -42,6 +43,27 @@ export interface BloodbornePatchUpdateStatusSnapshot {
     progress: number | null;
     isUpdating: boolean;
     error: string | null;
+}
+
+export interface Shadps4UpdateCommit {
+    sha: string;
+    shortSha: string;
+    title: string;
+    body: string | null;
+    commitUrl: string | null;
+    pullRequestNumber: number | null;
+    pullRequestUrl: string | null;
+}
+
+export interface Shadps4UpdateChangelog {
+    channel: EmulatorChannel;
+    currentVersion: string | null;
+    targetVersion: string;
+    currentCommit: string | null;
+    targetCommit: string | null;
+    compareUrl: string | null;
+    isUpToDate: boolean;
+    commits: Shadps4UpdateCommit[];
 }
 
 export const SHADPS4_GRAPHICS_PRESET_IDS = [
@@ -101,6 +123,11 @@ export interface PlatformCommandMap {
     [PLATFORM_COMMANDS.UPDATE_SHADPS4]: {
         payload: undefined;
         result: LauncherBootstrapState;
+    };
+
+    [PLATFORM_COMMANDS.GET_SHADPS4_UPDATE_CHANGELOG]: {
+        payload: undefined;
+        result: Shadps4UpdateChangelog;
     };
 
     [PLATFORM_COMMANDS.GET_SHADPS4_GRAPHICS_SETTINGS]: {

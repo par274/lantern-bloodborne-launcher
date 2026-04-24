@@ -51,7 +51,7 @@ export const trTree = {
         savingLauncherConfig: 'Launcher ayarları kaydediliyor',
         localeLabel: 'Dil',
         validationReady: 'Bloodborne bulundu, ana menü hazırlanıyor.',
-        platformUnavailable: 'Bu ekran yalnızca Electron ortamında çalışır.',
+        platformUnavailable: 'Electron köprüsü bulunamadı.',
         unexpectedError: 'Beklenmeyen bir hata oluştu.'
     },
     menu: {
@@ -262,9 +262,23 @@ export const trTree = {
         repository: 'Depo',
         update: {
             button: 'Güncelle',
+            previewEyebrow: 'Release Changelog',
+            previewTitle: 'Güncellemeden önce değişiklikleri incele',
+            previewDescription:
+                'Lantern, güncelleme başlamadan önce mevcut sürüm ile en güncel release arasındaki commit aralığını gösterebilir.',
             checking: 'GitHub denetleniyor...',
             complete: 'Güncelleme tamamlandı',
-            failed: 'Güncelleme başarısız'
+            failed: 'Güncelleme başarısız',
+            currentVersion: 'Mevcut Sürüm',
+            targetVersion: 'Hedef Sürüm',
+            commitList: 'Commit Listesi',
+            compareLink: 'Compare Aç',
+            loadingChangelog: 'GitHub changelog yükleniyor...',
+            failedToLoad: 'Changelog şu anda yüklenemedi.',
+            upToDate: 'Bu kanal zaten mevcut en güncel release sürümünde.',
+            firstInstall: 'Henüz önceki bir shadPS4 sürümü yapılandırılmamış. Onay verirsen etkin kanal için en güncel release indirilecek.',
+            noCommits: 'GitHub compare bu güncelleme aralığı için commit listesi döndürmedi.',
+            confirmButton: 'Güncellemeyi Başlat'
         },
         labels: {
             channel: 'Kanal',

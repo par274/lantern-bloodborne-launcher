@@ -52,7 +52,7 @@ export const enTree = {
         savingLauncherConfig: 'Saving launcher configuration',
         localeLabel: 'Language',
         validationReady: 'Bloodborne was found, preparing the main menu.',
-        platformUnavailable: 'This screen only works inside Electron.',
+        platformUnavailable: 'Electron bridge could not be found.',
         unexpectedError: 'An unexpected error occurred.'
     },
     menu: {
@@ -263,9 +263,23 @@ export const enTree = {
         repository: 'Repository',
         update: {
             button: 'Update',
+            previewEyebrow: 'Release Changelog',
+            previewTitle: 'Review changes before updating',
+            previewDescription:
+                'Lantern can show the commit range between your current build and the latest release before the update begins.',
             checking: 'Checking GitHub...',
             complete: 'Update complete',
-            failed: 'Update failed'
+            failed: 'Update failed',
+            currentVersion: 'Current Version',
+            targetVersion: 'Target Version',
+            commitList: 'Commit List',
+            compareLink: 'Open Compare',
+            loadingChangelog: 'Loading changelog from GitHub...',
+            failedToLoad: 'The changelog could not be loaded right now.',
+            upToDate: 'This channel is already on the latest available release.',
+            firstInstall: 'No previous shadPS4 version is configured yet. Confirm to download the latest release for the active channel.',
+            noCommits: 'GitHub compare did not return any commit entries for this update range.',
+            confirmButton: 'Start Update'
         },
         labels: {
             channel: 'Channel',

@@ -6,6 +6,7 @@ import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
+import type { Shadps4UpdateChangelog, Shadps4UpdateCommit } from '$lib/contracts/commands';
 import type { EmulatorChannel, LauncherConfig } from '$lib/contracts/launcherConfig';
 import appDefinition from '$platform/app';
 
@@ -17,7 +18,9 @@ import {
 } from './launcherConfig';
 import { setSplashStatusKey, setSplashStatusProgress } from './splashStatus';
 
-const SHADPS4_RELEASES_API_URL = 'https://api.github.com/repos/shadps4-emu/shadPS4/releases';
+const SHADPS4_GITHUB_REPO_API_URL = 'https://api.github.com/repos/shadps4-emu/shadPS4';
+const SHADPS4_RELEASES_API_URL = `${SHADPS4_GITHUB_REPO_API_URL}/releases`;
+const SHADPS4_PULL_REQUEST_URL_PREFIX = 'https://github.com/shadps4-emu/shadPS4/pull';
 const SHADPS4_CACHE_SCHEMA_VERSION = 1 as const;
 const SHADPS4_CACHE_FILE_NAME = 'cache.json';
 const SHADPS4_DEFAULT_CHANNEL: EmulatorChannel = 'nightly';
@@ -38,6 +41,19 @@ interface GitHubRelease {
     draft: boolean;
     published_at: string | null;
     assets: GitHubReleaseAsset[];
+}
+
+interface GitHubCompareCommit {
+    sha: string;
+    html_url?: string | null;
+    commit: {
+        message: string;
+    };
+}
+
+interface GitHubCompareResponse {
+    html_url?: string | null;
+    commits?: GitHubCompareCommit[];
 }
 
 interface CachedShadps4Build {
@@ -283,6 +299,57 @@ async function pathExists(targetPath: string | null): Promise<boolean> {
     }
 }
 
+async function fetchGitHubJson<T>(url: string): Promise<T> {
+    const response = await fetch(url, {
+        headers: {
+            Accept: 'application/vnd.github+json',
+            'User-Agent': `${appDefinition.appShortTitle}/${appDefinition.appVer}`
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(`GitHub request failed with status ${response.status}.`);
+    }
+
+    return (await response.json()) as T;
+}
+
+function resolveShadps4CommitRef(version: string | null): string | null {
+    const matches = version?.match(/[a-f0-9]{7,40}/gi);
+    return matches?.at(-1) ?? null;
+}
+
+function resolvePullRequestNumber(commitMessage: string): number | null {
+    const mergeMatch = commitMessage.match(/merge pull request\s+#(\d+)/i);
+    if (mergeMatch) {
+        return Number.parseInt(mergeMatch[1], 10);
+    }
+
+    const squashMatch = commitMessage.match(/\(#(\d+)\)(?:\s*$|\n)/);
+    if (squashMatch) {
+        return Number.parseInt(squashMatch[1], 10);
+    }
+
+    return null;
+}
+
+function mapCompareCommitToChangelogEntry(commit: GitHubCompareCommit): Shadps4UpdateCommit {
+    const [rawTitle, ...rawBody] = commit.commit.message.split('\n');
+    const title = rawTitle.trim() || commit.sha.slice(0, 12);
+    const bodyText = rawBody.join('\n').trim();
+    const pullRequestNumber = resolvePullRequestNumber(commit.commit.message);
+
+    return {
+        sha: commit.sha,
+        shortSha: commit.sha.slice(0, 12),
+        title,
+        body: bodyText.length > 0 ? bodyText : null,
+        commitUrl: typeof commit.html_url === 'string' ? commit.html_url : null,
+        pullRequestNumber,
+        pullRequestUrl: pullRequestNumber ? `${SHADPS4_PULL_REQUEST_URL_PREFIX}/${pullRequestNumber}` : null
+    };
+}
+
 function getPlatformAssetTokens() {
     if (process.platform === 'win32') {
         return ['windows', 'win64', 'win', 'msvc'];
@@ -385,18 +452,7 @@ function resolveReleaseAsset(release: GitHubRelease): ResolvedShadps4Asset {
 async function fetchShadps4Releases(): Promise<GitHubRelease[]> {
     setSplashStatusKey('splash.checkingShadps4Release');
 
-    const response = await fetch(SHADPS4_RELEASES_API_URL, {
-        headers: {
-            Accept: 'application/vnd.github+json',
-            'User-Agent': `${appDefinition.appShortTitle}/${appDefinition.appVer}`
-        }
-    });
-
-    if (!response.ok) {
-        throw new Error(`GitHub releases request failed with status ${response.status}.`);
-    }
-
-    const releases = (await response.json()) as GitHubRelease[];
+    const releases = await fetchGitHubJson<GitHubRelease[]>(SHADPS4_RELEASES_API_URL);
     return Array.isArray(releases) ? releases : [];
 }
 
@@ -420,6 +476,40 @@ async function fetchLatestRelease(channel: EmulatorChannel): Promise<GitHubRelea
     }
 
     return selectedRelease;
+}
+
+async function fetchReleaseCompare(baseRef: string, headRef: string): Promise<GitHubCompareResponse> {
+    const compareUrl = `${SHADPS4_GITHUB_REPO_API_URL}/compare/${encodeURIComponent(baseRef)}...${encodeURIComponent(headRef)}`;
+    return fetchGitHubJson<GitHubCompareResponse>(compareUrl);
+}
+
+function resolveCompareRefCandidates(baseVersion: string, headVersion: string): Array<{ baseRef: string; headRef: string }> {
+    const baseCommit = resolveShadps4CommitRef(baseVersion);
+    const headCommit = resolveShadps4CommitRef(headVersion);
+    const candidates: Array<{ baseRef: string; headRef: string }> = [];
+
+    if (baseCommit && headCommit) {
+        candidates.push({
+            baseRef: baseCommit,
+            headRef: headCommit
+        });
+    }
+
+    candidates.push({
+        baseRef: baseVersion,
+        headRef: headVersion
+    });
+
+    const seen = new Set<string>();
+    return candidates.filter(({ baseRef, headRef }) => {
+        const key = `${baseRef}...${headRef}`;
+        if (seen.has(key)) {
+            return false;
+        }
+
+        seen.add(key);
+        return true;
+    });
 }
 
 function resolveBuildDirectoryName(channel: EmulatorChannel): string {
@@ -698,6 +788,61 @@ async function saveSelectedBuild(channel: EmulatorChannel, build: EnsuredShadps4
     };
 
     return writeLauncherConfig(nextConfig);
+}
+
+export async function readShadps4UpdateChangelog(): Promise<Shadps4UpdateChangelog> {
+    const currentConfig = await readLauncherConfig();
+    const channel = currentConfig.emulator.shadps4.channel || SHADPS4_DEFAULT_CHANNEL;
+    const latestRelease = await fetchLatestRelease(channel);
+    const currentVersion = currentConfig.emulator.shadps4.version;
+    const currentCommit = resolveShadps4CommitRef(currentVersion);
+    const targetCommit = resolveShadps4CommitRef(latestRelease.tag_name);
+
+    if (!currentVersion || currentVersion === latestRelease.tag_name) {
+        return {
+            channel,
+            currentVersion,
+            targetVersion: latestRelease.tag_name,
+            currentCommit,
+            targetCommit,
+            compareUrl: null,
+            isUpToDate: currentVersion === latestRelease.tag_name,
+            commits: []
+        };
+    }
+
+    for (const { baseRef, headRef } of resolveCompareRefCandidates(currentVersion, latestRelease.tag_name)) {
+        try {
+            const comparison = await fetchReleaseCompare(baseRef, headRef);
+            const commits = Array.isArray(comparison.commits)
+                ? [...comparison.commits].reverse().map(mapCompareCommitToChangelogEntry)
+                : [];
+
+            return {
+                channel,
+                currentVersion,
+                targetVersion: latestRelease.tag_name,
+                currentCommit,
+                targetCommit,
+                compareUrl: typeof comparison.html_url === 'string' ? comparison.html_url : null,
+                isUpToDate: false,
+                commits
+            };
+        } catch (error) {
+            console.warn(`shadPS4 changelog compare failed for ${baseRef}...${headRef}.`, error);
+        }
+    }
+
+    return {
+        channel,
+        currentVersion,
+        targetVersion: latestRelease.tag_name,
+        currentCommit,
+        targetCommit,
+        compareUrl: null,
+        isUpToDate: false,
+        commits: []
+    };
 }
 
 export async function ensureLatestShadps4Configured(): Promise<LauncherConfig> {
