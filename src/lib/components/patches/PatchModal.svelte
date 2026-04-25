@@ -8,6 +8,8 @@
 		goBack: () => void;
 		deleteText: () => void;
 		confirmText: () => void;
+		insertSpace: () => void;
+		clearText: () => void;
 	};
 </script>
 
@@ -595,6 +597,32 @@
 		}
 
 		void updateBloodbornePatches();
+	}
+
+	export function insertSpace() {
+		if (!isVirtualKeyboardOpen && !isPatchSearchFocused) {
+			return;
+		}
+
+		playEnterSound();
+		setPatchSearchQuery(`${patchSearchQuery} `);
+
+		requestAnimationFrame(() => {
+			patchSearchInput?.focus({ preventScroll: true });
+		});
+	}
+
+	export function clearText() {
+		if (!isVirtualKeyboardOpen && !isPatchSearchFocused) {
+			return;
+		}
+
+		playEnterSound();
+		setPatchSearchQuery('');
+
+		requestAnimationFrame(() => {
+			patchSearchInput?.focus({ preventScroll: true });
+		});
 	}
 
 	onMount(() => {

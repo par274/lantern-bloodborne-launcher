@@ -13,6 +13,8 @@ export type GamepadState = {
 	buttonHeldB: boolean;
 	buttonHeldX: boolean;
 	buttonHeldY: boolean;
+	buttonHeldLeftShoulder: boolean;
+	buttonHeldRightShoulder: boolean;
 	inputMode: InputMode;
 	isXboxControllerConnected: boolean;
 	isDualSenseControllerConnected: boolean;
@@ -27,6 +29,8 @@ type ControllerActions = {
 	goBack: () => void;
 	deleteText: () => void;
 	confirmText: () => void;
+	insertSpace: () => void;
+	clearText: () => void;
 };
 
 const AXIS_DEADZONE = 0.55;
@@ -48,6 +52,8 @@ export function createGamepadState(): GamepadState {
 		buttonHeldB: false,
 		buttonHeldX: false,
 		buttonHeldY: false,
+		buttonHeldLeftShoulder: false,
+		buttonHeldRightShoulder: false,
 		inputMode: 'keyboard',
 		isXboxControllerConnected: false,
 		isDualSenseControllerConnected: false
@@ -181,6 +187,8 @@ export function handleControllerInput(state: GamepadState, actions: ControllerAc
 		state.buttonHeldB = false;
 		state.buttonHeldX = false;
 		state.buttonHeldY = false;
+		state.buttonHeldLeftShoulder = false;
+		state.buttonHeldRightShoulder = false;
 
 		if (state.inputMode !== 'keyboard') {
 			state.inputMode = 'keyboard';
@@ -274,6 +282,20 @@ export function handleControllerInput(state: GamepadState, actions: ControllerAc
 		actions.confirmText();
 	}
 	state.buttonHeldY = yPressed;
+
+	const leftShoulderPressed = !!controller.buttons[4]?.pressed;
+	if (leftShoulderPressed && !state.buttonHeldLeftShoulder) {
+		setDetectedControllerInputMode(state);
+		actions.insertSpace();
+	}
+	state.buttonHeldLeftShoulder = leftShoulderPressed;
+
+	const rightShoulderPressed = !!controller.buttons[5]?.pressed;
+	if (rightShoulderPressed && !state.buttonHeldRightShoulder) {
+		setDetectedControllerInputMode(state);
+		actions.clearText();
+	}
+	state.buttonHeldRightShoulder = rightShoulderPressed;
 }
 
 export function createControllerTick(state: GamepadState, actions: ControllerActions) {

@@ -1140,6 +1140,28 @@
 				if (isLauncherInfoPromptVisible) {
 					openLauncherInfoModal();
 				}
+			},
+			insertSpace: () => {
+				if (activeInputDropdown) {
+					playEnterSound();
+					activeInputDropdown.onInput(`${activeInputDropdown.value} `);
+					return;
+				}
+
+				if (isPatchModalOpen) {
+					patchModal?.insertSpace();
+				}
+			},
+			clearText: () => {
+				if (activeInputDropdown) {
+					playEnterSound();
+					activeInputDropdown.onInput('');
+					return;
+				}
+
+				if (isPatchModalOpen) {
+					patchModal?.clearText();
+				}
 			}
 		});
 		const handleControllerChange = createControllerChangeHandler(gamepad);

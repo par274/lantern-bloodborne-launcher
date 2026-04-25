@@ -16,7 +16,7 @@ const app: App = {
     name: 'lantern-bloodborne-launcher',
     appShortTitle: 'LanternLauncher',
     appTitle: 'LanternLauncher for Bloodborne shadPS4 emu.',
-    appVer: '0.0.4',
+    appVer: '0.0.5',
     buildTitle: 'Early Access Build',
     copyright: 'Copyright (c) 2026 par274',
     license: 'GPL-2.0',
