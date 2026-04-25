@@ -10,12 +10,7 @@
 		playEnterSound: () => void;
 	};
 
-	let {
-		bootstrapState,
-		isOpen,
-		onClose,
-		playEnterSound
-	}: Props = $props();
+	let { bootstrapState, isOpen, onClose, playEnterSound }: Props = $props();
 
 	let bloodborne = $derived(bootstrapState?.config.games.bloodborne ?? null);
 	let title = $derived(bloodborne?.title || 'Bloodborne');
