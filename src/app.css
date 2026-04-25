@@ -241,6 +241,7 @@ body {
 
 .menu-dropdown,
 .bb-panel-surface {
+    animation: bbPanelFadeIn 110ms ease-out both;
     border-color: rgb(211 201 174 / 0.18) !important;
     background:
         linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 0.018) 18%, rgb(255 255 255 / 0.035) 50%, rgb(255 255 255 / 0.018) 82%, transparent 100%),
@@ -255,6 +256,7 @@ body {
 }
 
 .bb-modal-overlay {
+    animation: bbFadeIn 120ms ease-out both;
     background:
         radial-gradient(circle at 50% 45%, rgb(0 0 0 / 0.24), rgb(0 0 0 / 0.68) 72%, rgb(0 0 0 / 0.86)),
         linear-gradient(180deg, rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.48));
@@ -262,6 +264,7 @@ body {
 }
 
 .bb-modal-frame {
+    animation: bbModalFrameIn 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     isolation: isolate;
     border-color: rgb(211 201 174 / 0.24) !important;
     border-radius: 14px !important;
@@ -307,6 +310,40 @@ body {
 
 .bb-modal-frame p {
     text-shadow: 0 1px 1px rgb(0 0 0 / 0.72);
+}
+
+@keyframes bbFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes bbModalFrameIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes bbPanelFadeIn {
+    from {
+        opacity: 0;
+        filter: blur(3px) brightness(0.82);
+    }
+
+    to {
+        opacity: 1;
+        filter: blur(0) brightness(1);
+    }
 }
 
 .menu-range-input {
@@ -408,5 +445,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
     .intro-overlay {
         transition: none;
+    }
+
+    .bb-modal-overlay,
+    .bb-modal-frame,
+    .menu-dropdown,
+    .bb-panel-surface {
+        animation: none;
     }
 }

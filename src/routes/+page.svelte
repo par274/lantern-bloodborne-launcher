@@ -1311,7 +1311,7 @@
 		>
 			<div>
 				<a
-					class="text-orange-500 drop-shadow-[0_0_6px_rgba(255,165,0,0.6)]"
+					class="text-blue-400 drop-shadow-[0_0_8px_rgba(0, 143, 255, 0.6)]"
 					target="_blank"
 					rel="noopener noreferrer"
 					href={app.github}
