@@ -122,6 +122,7 @@
 		playEnterSound();
 		isUpdatePreviewOpen = true;
 		isLoadingChangelog = true;
+		updateChangelog = null;
 		changelogErrorMessage = null;
 
 		try {
@@ -218,13 +219,13 @@
 	export function deleteText() {}
 </script>
 
-<div class="fixed inset-0 z-[24] flex items-center justify-center bg-black/35 px-5 py-8 backdrop-blur-[2px]">
+<div class="bb-modal-overlay fixed inset-0 z-[24] flex items-center justify-center bg-black/35 px-5 py-8 backdrop-blur-[2px]">
 	<section
-		class="relative w-[min(84vw,680px)] overflow-hidden rounded-[30px] border border-[#d0b875]/16 bg-[radial-gradient(circle_at_18%_0%,rgba(202,181,120,0.13),transparent_42%),linear-gradient(180deg,rgba(18,13,10,0.9),rgba(6,5,4,0.84))] px-7 py-6 shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
+		class="bb-modal-frame relative w-[min(84vw,680px)] overflow-hidden rounded-[30px] border border-[#d0b875]/16 bg-[radial-gradient(circle_at_18%_0%,rgba(202,181,120,0.13),transparent_42%),linear-gradient(180deg,rgba(18,13,10,0.9),rgba(6,5,4,0.84))] px-7 py-6 shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
 		aria-modal="true"
 		role="dialog"
 	>
-		<div class="pointer-events-none absolute inset-0 border border-white/5"></div>
+		<div class="bb-modal-border pointer-events-none absolute inset-0"></div>
 
 		<button
 			type="button"

@@ -609,13 +609,13 @@
 	});
 </script>
 
-<div class="fixed inset-0 z-[24] flex items-center justify-center bg-black/35 px-5 py-8 backdrop-blur-[2px]">
+<div class="bb-modal-overlay fixed inset-0 z-[24] flex items-center justify-center bg-black/35 px-5 py-8 backdrop-blur-[2px]">
 	<section
-		class="relative grid h-[min(74vh,720px)] w-[min(88vw,980px)] grid-cols-[minmax(280px,0.92fr)_minmax(260px,0.78fr)] overflow-hidden rounded-[30px] border border-[#d0b875]/16 bg-[radial-gradient(circle_at_20%_0%,rgba(202,181,120,0.12),transparent_38%),linear-gradient(180deg,rgba(18,13,10,0.88),rgba(6,5,4,0.82))] shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
+		class="bb-modal-frame relative grid h-[min(74vh,720px)] w-[min(88vw,980px)] grid-cols-[minmax(280px,0.92fr)_minmax(260px,0.78fr)] overflow-hidden rounded-[30px] border border-[#d0b875]/16 bg-[radial-gradient(circle_at_20%_0%,rgba(202,181,120,0.12),transparent_38%),linear-gradient(180deg,rgba(18,13,10,0.88),rgba(6,5,4,0.82))] shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
 		aria-modal="true"
 		role="dialog"
 	>
-		<div class="pointer-events-none absolute inset-0 border border-white/5"></div>
+		<div class="bb-modal-border pointer-events-none absolute inset-0"></div>
 
 		<div class="relative flex min-h-0 flex-col border-r border-[#c8b27a]/10">
 			<div class="border-b border-[#c8b27a]/10 px-6 py-5">

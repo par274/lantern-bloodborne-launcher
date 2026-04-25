@@ -31,7 +31,7 @@
 		'dualsense-triangle': 'color: #67e8f9; filter: drop-shadow(0 0 6px rgba(103,232,249,0.55));',
 		'keyboard-backspace': 'color: rgb(239 68 68); filter: drop-shadow(0 0 6px rgba(239,68,68,0.6));',
 		'keyboard-enter': 'color: rgb(34 197 94); filter: drop-shadow(0 0 6px rgba(34,197,94,0.6));',
-		'keyboard-i': 'color: rgb(254 240 138); filter: drop-shadow(0 0 6px rgba(250,204,21,0.55));',
+		'keyboard-i': 'color: #fff;',
 		'mouse-left': 'color: rgb(34 197 94); filter: drop-shadow(0 0 6px rgba(34,197,94,0.6));',
 		'mouse-right': 'color: rgb(239 68 68); filter: drop-shadow(0 0 6px rgba(239,68,68,0.6));',
 		'xbox-a': 'color: rgb(34 197 94); filter: drop-shadow(0 0 6px rgba(34,197,94,0.6));',
@@ -191,7 +191,7 @@
 			font-family="Arial, Helvetica, sans-serif"
 			font-size="18"
 			font-weight="700"
-			fill="#ffffff">i</text
+			fill="currentColor">i</text
 		>
 	</svg>
 {:else if name === 'keyboard-backspace'}

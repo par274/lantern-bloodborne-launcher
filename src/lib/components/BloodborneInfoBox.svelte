@@ -34,13 +34,13 @@
 </script>
 
 {#if isOpen}
-	<div class="fixed inset-0 z-[24] flex items-center justify-center bg-black/38 px-5 py-8 backdrop-blur-[2px]">
+	<div class="bb-modal-overlay fixed inset-0 z-[24] flex items-center justify-center bg-black/38 px-5 py-8 backdrop-blur-[2px]">
 		<section
-			class="relative w-[min(88vw,560px)] overflow-hidden rounded-[28px] border border-[#d0b875]/16 bg-[radial-gradient(circle_at_18%_0%,rgba(202,181,120,0.13),transparent_42%),linear-gradient(180deg,rgba(18,13,10,0.92),rgba(6,5,4,0.86))] p-6 shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
+			class="bb-modal-frame relative w-[min(88vw,560px)] overflow-hidden rounded-[28px] border border-[#d0b875]/16 bg-[radial-gradient(circle_at_18%_0%,rgba(202,181,120,0.13),transparent_42%),linear-gradient(180deg,rgba(18,13,10,0.92),rgba(6,5,4,0.86))] p-6 shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
 			aria-modal="true"
 			role="dialog"
 		>
-			<div class="pointer-events-none absolute inset-0 border border-white/5"></div>
+			<div class="bb-modal-border pointer-events-none absolute inset-0"></div>
 
 			<div class="relative z-10 flex items-start justify-between gap-5">
 				<div class="min-w-0">

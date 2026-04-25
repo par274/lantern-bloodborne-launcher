@@ -87,7 +87,7 @@
 </script>
 
 <div
-	class={`rounded-[20px] border border-[#c8b27a]/16 bg-[radial-gradient(circle_at_20%_0%,rgba(202,181,120,0.12),transparent_40%),rgba(5,4,3,0.86)] p-3 shadow-[0_16px_42px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-[8px] ${className}`}
+	class={`bb-panel-surface rounded-[20px] border border-[#c8b27a]/16 bg-[radial-gradient(circle_at_20%_0%,rgba(202,181,120,0.12),transparent_40%),rgba(5,4,3,0.86)] p-3 shadow-[0_16px_42px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-[8px] ${className}`}
 >
 	<div class="mb-2 flex items-center justify-between gap-3 text-[0.52rem] font-semibold uppercase tracking-[0.2em] text-[#ccb57a]/62">
 		<span>{$t('virtualKeyboard.title')}</span>

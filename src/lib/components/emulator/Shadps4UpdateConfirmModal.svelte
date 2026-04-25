@@ -107,13 +107,17 @@
 	}
 </script>
 
-<div class="absolute inset-0 z-[26] flex items-center justify-center bg-black/56 px-4 py-5 backdrop-blur-[3px]">
+<div class="absolute inset-0 z-[26] flex items-center justify-center px-4 py-5">
+	<div
+		class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(0,0,0,0.18),rgba(0,0,0,0.44)_76%,rgba(0,0,0,0.58)),linear-gradient(180deg,rgba(0,0,0,0.18),rgba(0,0,0,0.34))] backdrop-blur-[1.5px]"
+	></div>
+
 	<section
-		class="relative w-[min(74vw,760px)] overflow-hidden rounded-[28px] border border-[#d0b875]/16 bg-[radial-gradient(circle_at_20%_0%,rgba(202,181,120,0.11),transparent_42%),linear-gradient(180deg,rgba(17,13,10,0.95),rgba(6,5,4,0.9))] px-6 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.56)]"
+		class="bb-modal-frame relative z-10 w-[min(74vw,760px)] overflow-hidden rounded-[28px] border border-[#d0b875]/16 bg-[radial-gradient(circle_at_20%_0%,rgba(202,181,120,0.11),transparent_42%),linear-gradient(180deg,rgba(17,13,10,0.95),rgba(6,5,4,0.9))] px-6 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.56)]"
 		aria-modal="true"
 		role="dialog"
 	>
-		<div class="pointer-events-none absolute inset-0 border border-white/5"></div>
+		<div class="bb-modal-border pointer-events-none absolute inset-0"></div>
 
 		<div class="relative flex items-start justify-between gap-6">
 			<div>
@@ -176,8 +180,14 @@
 			</div>
 
 			{#if isLoading}
-				<div class="mt-4 text-[0.76rem] leading-[1.7] text-white/58">
-					{$t('emulator.update.loadingChangelog')}
+				<div class="mt-4 flex items-center gap-3 text-[0.76rem] leading-[1.7] text-white/58">
+					<div
+						class="h-5 w-5 shrink-0 animate-spin rounded-full border border-[#c8b27a]/16 border-t-[#f0ddb0]/78 shadow-[0_0_14px_rgba(200,178,122,0.12)]"
+						aria-hidden="true"
+					></div>
+					<div>
+						{$t('emulator.update.loadingChangelog')}
+					</div>
 				</div>
 			{:else if errorMessage}
 				<div class="mt-4 text-[0.76rem] leading-[1.7] text-red-200/72">

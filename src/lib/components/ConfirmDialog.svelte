@@ -89,13 +89,13 @@
 	}
 </script>
 
-<div class="fixed inset-0 z-[26] flex items-center justify-center bg-black/42 px-5 py-8 backdrop-blur-[2px]">
+<div class="bb-modal-overlay fixed inset-0 z-[26] flex items-center justify-center bg-black/42 px-5 py-8 backdrop-blur-[2px]">
 	<section
-		class="relative w-[min(88vw,460px)] overflow-hidden rounded-[26px] border border-[#d0b875]/18 bg-[radial-gradient(circle_at_18%_0%,rgba(202,181,120,0.14),transparent_42%),linear-gradient(180deg,rgba(18,13,10,0.94),rgba(6,5,4,0.9))] px-6 py-6 text-center shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
+		class="bb-modal-frame relative w-[min(88vw,460px)] overflow-hidden rounded-[26px] border border-[#d0b875]/18 bg-[radial-gradient(circle_at_18%_0%,rgba(202,181,120,0.14),transparent_42%),linear-gradient(180deg,rgba(18,13,10,0.94),rgba(6,5,4,0.9))] px-6 py-6 text-center shadow-[0_28px_80px_rgba(0,0,0,0.58)]"
 		aria-modal="true"
 		role="dialog"
 	>
-		<div class="pointer-events-none absolute inset-0 border border-white/5"></div>
+		<div class="bb-modal-border pointer-events-none absolute inset-0"></div>
 
 		<div class="relative">
 			<div class="text-[0.62rem] font-semibold uppercase tracking-[0.28em] text-[#ccb57a]/68">
