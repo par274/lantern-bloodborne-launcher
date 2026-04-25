@@ -4,7 +4,21 @@ import type { TranslationDictionaryShape } from './tr';
 export const enTree = {
     title: 'English',
     app: {
-        version: 'App version {{version}}'
+        version: 'App version {{version}}',
+        info: {
+            eyebrow: 'Information',
+            title: 'Launcher Information',
+            description: 'LanternLauncher version details and saved Bloodborne metadata.',
+            launcherSection: 'Launcher Information',
+            bloodborneSection: 'Bloodborne Information',
+            nameLabel: 'Application',
+            versionLabel: 'Launcher Version',
+            buildLabel: 'Build',
+            repositoryLabel: 'GitHub',
+            licenseLabel: 'License',
+            copyrightLabel: 'Copyright',
+            unavailable: 'Unavailable'
+        }
     },
     bloodborne: {
         meta: {

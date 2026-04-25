@@ -3,7 +3,21 @@ import { createTranslationDictionary } from './createTranslationDictionary';
 export const trTree = {
     title: 'Türkçe',
     app: {
-        version: 'Uygulama sürümü {{version}}'
+        version: 'Uygulama sürümü {{version}}',
+        info: {
+            eyebrow: 'Bilgi',
+            title: 'Launcher Bilgileri',
+            description: 'LanternLauncher sürüm bilgileri ve kayıtlı Bloodborne metadata detayları.',
+            launcherSection: 'Launcher Bilgileri',
+            bloodborneSection: 'Bloodborne Bilgileri',
+            nameLabel: 'Uygulama',
+            versionLabel: 'Launcher Sürümü',
+            buildLabel: 'Build',
+            repositoryLabel: 'GitHub',
+            licenseLabel: 'Lisans',
+            copyrightLabel: 'Telif',
+            unavailable: 'Yok'
+        }
     },
     bloodborne: {
         meta: {

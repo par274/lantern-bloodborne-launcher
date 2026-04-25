@@ -17,10 +17,10 @@
 		isMenuSubtree,
 		resolveMenuBranch
 	} from '$lib/components/AppMenu.svelte';
-	import BloodborneInfoBox from '$lib/components/BloodborneInfoBox.svelte';
 	import ConfirmDialog, { type ConfirmDialogController } from '$lib/components/ConfirmDialog.svelte';
 	import Shadps4Modal, { type Shadps4ModalController } from '$lib/components/emulator/Shadps4Modal.svelte';
 	import InputPrompts from '$lib/components/InputPrompts.svelte';
+	import LauncherInfoBox from '$lib/components/LauncherInfoBox.svelte';
 	import PatchModal, { type PatchModalController } from '$lib/components/patches/PatchModal.svelte';
 	import SmokeLayer from '$lib/components/scene/SmokeLayer.svelte';
 	import { VIRTUAL_KEYBOARD_ROWS, type VirtualKeyboardKey } from '$lib/components/VirtualKeyboard.svelte';
@@ -53,7 +53,7 @@
 	let launcherBootstrapState = $state<LauncherBootstrapState | null>(null);
 	let isIntroOverlayVisible = $state(true);
 	let isIntroOverlayFading = $state(false);
-	let isBloodborneInfoModalOpen = $state(false);
+	let isLauncherInfoModalOpen = $state(false);
 	let isPatchModalOpen = $state(false);
 	let isShadps4ModalOpen = $state(false);
 	let isShaderCacheConfirmOpen = $state(false);
@@ -123,10 +123,10 @@
 	let isControllerInputActive = $derived(
 		gamepad.inputMode !== 'keyboard' && (gamepad.isXboxControllerConnected || gamepad.isDualSenseControllerConnected)
 	);
-	let isBloodborneInfoPromptVisible = $derived(
+	let isLauncherInfoPromptVisible = $derived(
 		menuPath.length === 0 &&
 			activeDropdownIndex === null &&
-			!isBloodborneInfoModalOpen &&
+			!isLauncherInfoModalOpen &&
 			!isPatchModalOpen &&
 			!isShadps4ModalOpen &&
 			!isShaderCacheConfirmOpen
@@ -311,7 +311,7 @@
 	}
 
 	function moveUp() {
-		if (isBloodborneInfoModalOpen) {
+		if (isLauncherInfoModalOpen) {
 			return;
 		}
 
@@ -349,7 +349,7 @@
 	}
 
 	function moveDown() {
-		if (isBloodborneInfoModalOpen) {
+		if (isLauncherInfoModalOpen) {
 			return;
 		}
 
@@ -387,7 +387,7 @@
 	}
 
 	function moveLeft() {
-		if (isBloodborneInfoModalOpen) {
+		if (isLauncherInfoModalOpen) {
 			return;
 		}
 
@@ -422,7 +422,7 @@
 	}
 
 	function moveRight() {
-		if (isBloodborneInfoModalOpen) {
+		if (isLauncherInfoModalOpen) {
 			return;
 		}
 
@@ -505,15 +505,15 @@
 		isPatchModalOpen = false;
 	}
 
-	function openBloodborneInfoModal() {
+	function openLauncherInfoModal() {
 		playEnterSound();
-		isBloodborneInfoModalOpen = true;
+		isLauncherInfoModalOpen = true;
 		void refreshLauncherBootstrapState();
 	}
 
-	function closeBloodborneInfoModal() {
+	function closeLauncherInfoModal() {
 		playEnterSound();
-		isBloodborneInfoModalOpen = false;
+		isLauncherInfoModalOpen = false;
 	}
 
 	function openShadps4Modal() {
@@ -850,8 +850,8 @@
 	}
 
 	function enterSelected(targetIndex = selected) {
-		if (isBloodborneInfoModalOpen) {
-			closeBloodborneInfoModal();
+		if (isLauncherInfoModalOpen) {
+			closeLauncherInfoModal();
 			return;
 		}
 
@@ -907,8 +907,8 @@
 	}
 
 	function goBack() {
-		if (isBloodborneInfoModalOpen) {
-			closeBloodborneInfoModal();
+		if (isLauncherInfoModalOpen) {
+			closeLauncherInfoModal();
 			return;
 		}
 
@@ -957,9 +957,9 @@
 			return;
 		}
 
-		if (e.key.toLowerCase() === 'i' && isBloodborneInfoPromptVisible) {
+		if (e.key.toLowerCase() === 'i' && isLauncherInfoPromptVisible) {
 			e.preventDefault();
-			openBloodborneInfoModal();
+			openLauncherInfoModal();
 			return;
 		}
 
@@ -1112,8 +1112,8 @@
 				}
 			},
 			confirmText: () => {
-				if (isBloodborneInfoModalOpen) {
-					closeBloodborneInfoModal();
+				if (isLauncherInfoModalOpen) {
+					closeLauncherInfoModal();
 					return;
 				}
 
@@ -1137,8 +1137,8 @@
 					return;
 				}
 
-				if (isBloodborneInfoPromptVisible) {
-					openBloodborneInfoModal();
+				if (isLauncherInfoPromptVisible) {
+					openLauncherInfoModal();
 				}
 			}
 		});
@@ -1204,12 +1204,12 @@
 			<img class="bb-logo" src={asset('/bb-logo.png')} alt="Bloodborne logo" draggable="false" />
 		</div>
 
-		{#if menuPath.length === 0 || isBloodborneInfoModalOpen}
-			<BloodborneInfoBox
+		{#if menuPath.length === 0 || isLauncherInfoModalOpen}
+			<LauncherInfoBox
 				bootstrapState={launcherBootstrapState}
-				isOpen={isBloodborneInfoModalOpen}
+				isOpen={isLauncherInfoModalOpen}
 				onClose={() => {
-					isBloodborneInfoModalOpen = false;
+					isLauncherInfoModalOpen = false;
 				}}
 				{playEnterSound}
 			/>
@@ -1303,7 +1303,7 @@
 			inputMode={gamepad.inputMode}
 			isXboxControllerConnected={gamepad.isXboxControllerConnected}
 			isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
-			showInfo={isBloodborneInfoPromptVisible}
+			showInfo={isLauncherInfoPromptVisible}
 		/>
 
 		<div
