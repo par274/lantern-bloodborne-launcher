@@ -12,6 +12,13 @@ export const enTree = {
             titleIdLabel: 'Title ID',
             contentIdLabel: 'Content ID',
             appVerLabel: 'Game Version'
+        },
+        info: {
+            eyebrow: 'Game Info',
+            title: 'Bloodborne Details',
+            description: 'Launcher metadata read from the saved Bloodborne configuration.',
+            installPathLabel: 'Install Path',
+            unavailable: 'Unavailable'
         }
     },
     virtualKeyboard: {
@@ -553,7 +560,8 @@ export const enTree = {
     },
     prompt: {
         select: 'Select',
-        back: 'Back'
+        back: 'Back',
+        info: 'Info'
     }
 } as const;
 

@@ -8,6 +8,7 @@
 		| 'globe'
 		| 'keyboard-backspace'
 		| 'keyboard-enter'
+		| 'keyboard-i'
 		| 'mouse-left'
 		| 'mouse-right'
 		| 'search'
@@ -30,6 +31,7 @@
 		'dualsense-triangle': 'color: #67e8f9; filter: drop-shadow(0 0 6px rgba(103,232,249,0.55));',
 		'keyboard-backspace': 'color: rgb(239 68 68); filter: drop-shadow(0 0 6px rgba(239,68,68,0.6));',
 		'keyboard-enter': 'color: rgb(34 197 94); filter: drop-shadow(0 0 6px rgba(34,197,94,0.6));',
+		'keyboard-i': 'color: rgb(254 240 138); filter: drop-shadow(0 0 6px rgba(250,204,21,0.55));',
 		'mouse-left': 'color: rgb(34 197 94); filter: drop-shadow(0 0 6px rgba(34,197,94,0.6));',
 		'mouse-right': 'color: rgb(239 68 68); filter: drop-shadow(0 0 6px rgba(239,68,68,0.6));',
 		'xbox-a': 'color: rgb(34 197 94); filter: drop-shadow(0 0 6px rgba(34,197,94,0.6));',
@@ -43,6 +45,7 @@
 		'dualsense-triangle': 22,
 		'keyboard-backspace': 24,
 		'keyboard-enter': 24,
+		'keyboard-i': 22,
 		'xbox-a': 22,
 		'xbox-b': 22,
 		'xbox-x': 22,
@@ -176,6 +179,20 @@
 	>
 		<path d="M18 6v6a3 3 0 0 1 -3 3h-10l4 -4" />
 		<path d="M9 19l-4 -4" />
+	</svg>
+{:else if name === 'keyboard-i'}
+	<svg class={className} style={resolvedStyle} viewBox="0 0 22 22">
+		<rect x="8" y="8" width="18" height="18" rx="10" fill="none" />
+		<text
+			x="50%"
+			y="50%"
+			text-anchor="middle"
+			dominant-baseline="central"
+			font-family="Arial, Helvetica, sans-serif"
+			font-size="18"
+			font-weight="700"
+			fill="#ffffff">i</text
+		>
 	</svg>
 {:else if name === 'keyboard-backspace'}
 	<svg

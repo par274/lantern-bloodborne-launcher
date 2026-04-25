@@ -17,6 +17,7 @@
 		isMenuSubtree,
 		resolveMenuBranch
 	} from '$lib/components/AppMenu.svelte';
+	import BloodborneInfoBox from '$lib/components/BloodborneInfoBox.svelte';
 	import ConfirmDialog, { type ConfirmDialogController } from '$lib/components/ConfirmDialog.svelte';
 	import Shadps4Modal, { type Shadps4ModalController } from '$lib/components/emulator/Shadps4Modal.svelte';
 	import InputPrompts from '$lib/components/InputPrompts.svelte';
@@ -52,6 +53,7 @@
 	let launcherBootstrapState = $state<LauncherBootstrapState | null>(null);
 	let isIntroOverlayVisible = $state(true);
 	let isIntroOverlayFading = $state(false);
+	let isBloodborneInfoModalOpen = $state(false);
 	let isPatchModalOpen = $state(false);
 	let isShadps4ModalOpen = $state(false);
 	let isShaderCacheConfirmOpen = $state(false);
@@ -120,6 +122,14 @@
 	let isStartGameAvailable = $derived(launcherBootstrapState ? launcherBootstrapState.emulator.shadps4.isAvailable : true);
 	let isControllerInputActive = $derived(
 		gamepad.inputMode !== 'keyboard' && (gamepad.isXboxControllerConnected || gamepad.isDualSenseControllerConnected)
+	);
+	let isBloodborneInfoPromptVisible = $derived(
+		menuPath.length === 0 &&
+			activeDropdownIndex === null &&
+			!isBloodborneInfoModalOpen &&
+			!isPatchModalOpen &&
+			!isShadps4ModalOpen &&
+			!isShaderCacheConfirmOpen
 	);
 
 	$effect(() => {
@@ -301,6 +311,10 @@
 	}
 
 	function moveUp() {
+		if (isBloodborneInfoModalOpen) {
+			return;
+		}
+
 		if (isShaderCacheConfirmOpen) {
 			shaderCacheConfirmDialog?.moveUp();
 			return;
@@ -335,6 +349,10 @@
 	}
 
 	function moveDown() {
+		if (isBloodborneInfoModalOpen) {
+			return;
+		}
+
 		if (isShaderCacheConfirmOpen) {
 			shaderCacheConfirmDialog?.moveDown();
 			return;
@@ -369,6 +387,10 @@
 	}
 
 	function moveLeft() {
+		if (isBloodborneInfoModalOpen) {
+			return;
+		}
+
 		if (isShaderCacheConfirmOpen) {
 			shaderCacheConfirmDialog?.moveLeft();
 			return;
@@ -400,6 +422,10 @@
 	}
 
 	function moveRight() {
+		if (isBloodborneInfoModalOpen) {
+			return;
+		}
+
 		if (isShaderCacheConfirmOpen) {
 			shaderCacheConfirmDialog?.moveRight();
 			return;
@@ -479,6 +505,17 @@
 		isPatchModalOpen = false;
 	}
 
+	function openBloodborneInfoModal() {
+		playEnterSound();
+		isBloodborneInfoModalOpen = true;
+		void refreshLauncherBootstrapState();
+	}
+
+	function closeBloodborneInfoModal() {
+		playEnterSound();
+		isBloodborneInfoModalOpen = false;
+	}
+
 	function openShadps4Modal() {
 		isShadps4ModalOpen = true;
 	}
@@ -507,6 +544,18 @@
 		}
 
 		launcherBootstrapState = await platformApi.invoke(PLATFORM_COMMANDS.UPDATE_SHADPS4, undefined);
+	}
+
+	async function refreshLauncherBootstrapState() {
+		if (!platformApi.isAvailable) {
+			return;
+		}
+
+		try {
+			launcherBootstrapState = await platformApi.invoke(PLATFORM_COMMANDS.GET_LAUNCHER_BOOTSTRAP_STATE, undefined);
+		} catch (error) {
+			console.warn('Launcher bootstrap state could not be refreshed.', error);
+		}
 	}
 
 	async function loadGeneralSettings() {
@@ -801,6 +850,11 @@
 	}
 
 	function enterSelected(targetIndex = selected) {
+		if (isBloodborneInfoModalOpen) {
+			closeBloodborneInfoModal();
+			return;
+		}
+
 		if (isShaderCacheConfirmOpen) {
 			shaderCacheConfirmDialog?.enterSelected();
 			return;
@@ -853,6 +907,11 @@
 	}
 
 	function goBack() {
+		if (isBloodborneInfoModalOpen) {
+			closeBloodborneInfoModal();
+			return;
+		}
+
 		if (isShaderCacheConfirmOpen) {
 			shaderCacheConfirmDialog?.goBack();
 			return;
@@ -895,6 +954,12 @@
 		}
 
 		if (isTypingInTextInput && !menuNavigationKeys.includes(e.key)) {
+			return;
+		}
+
+		if (e.key.toLowerCase() === 'i' && isBloodborneInfoPromptVisible) {
+			e.preventDefault();
+			openBloodborneInfoModal();
 			return;
 		}
 
@@ -1047,6 +1112,11 @@
 				}
 			},
 			confirmText: () => {
+				if (isBloodborneInfoModalOpen) {
+					closeBloodborneInfoModal();
+					return;
+				}
+
 				if (isShaderCacheConfirmOpen) {
 					shaderCacheConfirmDialog?.enterSelected();
 					return;
@@ -1064,6 +1134,11 @@
 
 				if (isShadps4ModalOpen) {
 					shadps4Modal?.confirmText();
+					return;
+				}
+
+				if (isBloodborneInfoPromptVisible) {
+					openBloodborneInfoModal();
 				}
 			}
 		});
@@ -1128,6 +1203,17 @@
 		<div class="logo-layer pointer-events-none absolute inset-0">
 			<img class="bb-logo" src={asset('/bb-logo.png')} alt="Bloodborne logo" draggable="false" />
 		</div>
+
+		{#if menuPath.length === 0 || isBloodborneInfoModalOpen}
+			<BloodborneInfoBox
+				bootstrapState={launcherBootstrapState}
+				isOpen={isBloodborneInfoModalOpen}
+				onClose={() => {
+					isBloodborneInfoModalOpen = false;
+				}}
+				{playEnterSound}
+			/>
+		{/if}
 
 		<div class="relative z-[12] flex h-full w-full items-center justify-center px-4">
 			<div class="flex w-full items-center justify-center">
@@ -1217,6 +1303,7 @@
 			inputMode={gamepad.inputMode}
 			isXboxControllerConnected={gamepad.isXboxControllerConnected}
 			isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
+			showInfo={isBloodborneInfoPromptVisible}
 		/>
 
 		<div

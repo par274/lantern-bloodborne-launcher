@@ -11,6 +11,13 @@ export const trTree = {
             titleIdLabel: 'Title ID',
             contentIdLabel: 'Content ID',
             appVerLabel: 'Oyun Sürümü'
+        },
+        info: {
+            eyebrow: 'Oyun Bilgisi',
+            title: 'Bloodborne Detayları',
+            description: 'Kaydedilen Bloodborne yapılandırmasından okunan launcher metadata bilgileri.',
+            installPathLabel: 'Kurulum Yolu',
+            unavailable: 'Yok'
         }
     },
     virtualKeyboard: {
@@ -552,7 +559,8 @@ export const trTree = {
     },
     prompt: {
         select: 'Seç',
-        back: 'Geri'
+        back: 'Geri',
+        info: 'Bilgi'
     }
 } as const;
 
