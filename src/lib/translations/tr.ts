@@ -70,10 +70,20 @@ export const trTree = {
         selectingFolder: 'Klasör seçici açılıyor',
         validatingBloodbornePath: 'Bloodborne klasörü doğrulanıyor',
         savingLauncherConfig: 'Launcher ayarları kaydediliyor',
+        launchingGame: 'Bloodborne başlatılıyor',
+        stoppingGame: 'Bloodborne kapatılıyor',
         localeLabel: 'Dil',
         validationReady: 'Bloodborne bulundu, ana menü hazırlanıyor.',
         platformUnavailable: 'Electron köprüsü bulunamadı.',
         unexpectedError: 'Beklenmeyen bir hata oluştu.'
+    },
+    gameOverlay: {
+        resume: 'Devam Et',
+        exit: 'Çık',
+        menuPrompt: 'Menü',
+        openHintPrefix: 'Overlay aç',
+        selectPrompt: 'Seç',
+        backPrompt: 'Geri'
     },
     menu: {
         main: {

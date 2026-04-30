@@ -71,10 +71,20 @@ export const enTree = {
         selectingFolder: 'Opening folder picker',
         validatingBloodbornePath: 'Validating Bloodborne folder',
         savingLauncherConfig: 'Saving launcher configuration',
+        launchingGame: 'Starting Bloodborne',
+        stoppingGame: 'Closing Bloodborne',
         localeLabel: 'Language',
         validationReady: 'Bloodborne was found, preparing the main menu.',
         platformUnavailable: 'Electron bridge could not be found.',
         unexpectedError: 'An unexpected error occurred.'
+    },
+    gameOverlay: {
+        resume: 'Resume',
+        exit: 'Exit',
+        menuPrompt: 'Menu',
+        openHintPrefix: 'Open overlay',
+        selectPrompt: 'Select',
+        backPrompt: 'Back'
     },
     menu: {
         main: {

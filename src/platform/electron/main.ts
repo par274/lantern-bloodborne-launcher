@@ -9,6 +9,7 @@ import { getLauncherBootstrapState, readLauncherConfig, validateShadps4Install }
 import { ensureLatestShadps4Configured } from './main/config/shadps4';
 import { ensureShadps4UserDataSynced } from './main/config/shadps4UserData';
 import { resetSplashStatusKey, setSplashStatusKey } from './main/config/splashStatus';
+import { canUseHostCommandChannel, sendHostCommand } from './main/hostCommandClient';
 import { registerCommands } from './main/registerCommands';
 
 const SPLASH_MIN_VISIBLE_MS = 450;
@@ -46,6 +47,24 @@ function createRendererSceneReadyPromise(window: BrowserWindow): Promise<void> {
     return new Promise<void>((resolve) => {
         resolveRendererSceneReady = resolve;
     });
+}
+
+async function canStartPackagedElectronApp(): Promise<boolean> {
+    if (!app.isPackaged) {
+        return true;
+    }
+
+    if (!canUseHostCommandChannel()) {
+        return false;
+    }
+
+    try {
+        await sendHostCommand('ping');
+        return true;
+    } catch (error) {
+        console.error('LanternLauncher host channel validation failed.', error);
+        return false;
+    }
 }
 
 function clearRendererSceneReadyState(webContentsId?: number): void {
@@ -192,13 +211,14 @@ async function createMainWindow(): Promise<BrowserWindow> {
         show: false,
         frame: false,
         fullscreen: true,
+        transparent: true,
         thickFrame: false,
         resizable: false,
         minimizable: false,
         maximizable: false,
         title: appMeta.title,
         autoHideMenuBar: true,
-        backgroundColor: '#000000',
+        backgroundColor: '#00000000',
         icon: resolveWindowIconPath(),
         webPreferences: {
             preload: resolvePreloadPath(),
@@ -356,10 +376,16 @@ async function launchMainWindow(): Promise<void> {
     }
 }
 
-registerCommands();
-
 app.whenReady()
     .then(async () => {
+        if (!(await canStartPackagedElectronApp())) {
+            console.error('LanternLauncher Electron app must be started from the native host.');
+            app.quit();
+            return;
+        }
+
+        registerCommands();
+
         ipcMain.handle(PLATFORM_COMMANDS.RENDERER_SCENE_READY, (event) => {
             markRendererSceneReady(event.sender.id);
         });

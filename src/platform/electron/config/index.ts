@@ -2,7 +2,7 @@ import type { Configuration } from 'electron-builder';
 
 import appMeta from './app.meta';
 import { syncBuildResources } from './syncBuildResources';
-import { prepareWindowsLayeredArtifacts, wrapWindowsLayeredBuild } from './wrapWindowsLayeredBuild';
+import { prepareNativeLayeredArtifacts, wrapNativeLayeredBuild } from './wrapNativeLayeredBuild';
 
 type SupportedPlatform = 'win32' | 'linux' | 'darwin';
 type SupportedArch = 'x64' | 'arm64';
@@ -82,12 +82,12 @@ const baseConfig: Configuration = {
         syncBuildResources();
         return false;
     },
-    beforePack: prepareWindowsLayeredArtifacts,
+    beforePack: prepareNativeLayeredArtifacts,
     directories: {
         buildResources: buildResourceDir,
         output: '.build/release/electron'
     },
-    afterAllArtifactBuild: wrapWindowsLayeredBuild,
+    afterAllArtifactBuild: wrapNativeLayeredBuild,
     files: [
         '.build/svelte/static/**/*',
         '.build/dist/electron/**/*',
@@ -103,22 +103,7 @@ const localConfig: Configuration = {
     win: {
         ...platformIcons.win,
         verifyUpdateCodeSignature: false,
-        target: [
-            { target: 'nsis', arch: [activeArch] },
-            { target: 'portable', arch: [activeArch] }
-        ]
-    },
-    nsis: {
-        oneClick: false,
-        allowToChangeInstallationDirectory: true,
-        createDesktopShortcut: true,
-        createStartMenuShortcut: true,
-        script: 'native/windows/installer.nsi',
-        shortcutName: appMeta.productName,
-        installerIcon: platformIcons.win.icon,
-        uninstallerIcon: platformIcons.win.icon,
-        installerHeaderIcon: platformIcons.win.icon,
-        uninstallDisplayName: appMeta.productName
+        target: [{ target: 'dir', arch: [activeArch] }]
     },
     mac: {
         ...platformIcons.mac,
@@ -144,11 +129,11 @@ const ciConfig: Configuration = {
     },
     mac: {
         ...platformIcons.mac,
-        target: [{ target: 'zip', arch: [activeArch] }]
+        target: [{ target: 'dir', arch: [activeArch] }]
     },
     linux: {
         ...platformIcons.linux,
-        target: [{ target: 'zip', arch: [activeArch] }]
+        target: [{ target: 'dir', arch: [activeArch] }]
     }
 };
 
@@ -158,7 +143,7 @@ let selectedConfig: Configuration = baseConfig;
 
 if (script.includes(':ci')) {
     selectedConfig = ciConfig;
-} else if (script.includes(':portable') || script.includes(':installer')) {
+} else if (script.includes(':portable')) {
     selectedConfig = localConfig;
 }
 

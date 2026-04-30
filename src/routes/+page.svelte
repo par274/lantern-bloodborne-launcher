@@ -17,6 +17,7 @@
 		isMenuSubtree,
 		resolveMenuBranch
 	} from '$lib/components/AppMenu.svelte';
+	import AppLoading from '$lib/components/AppLoading.svelte';
 	import ConfirmDialog, { type ConfirmDialogController } from '$lib/components/ConfirmDialog.svelte';
 	import Shadps4Modal, { type Shadps4ModalController } from '$lib/components/emulator/Shadps4Modal.svelte';
 	import InputPrompts from '$lib/components/InputPrompts.svelte';
@@ -57,6 +58,8 @@
 	let isPatchModalOpen = $state(false);
 	let isShadps4ModalOpen = $state(false);
 	let isShaderCacheConfirmOpen = $state(false);
+	let isEmbeddedGameActive = $state(false);
+	let isGameLaunchPending = $state(false);
 	let patchModal = $state<PatchModalController | undefined>(undefined);
 	let shadps4Modal = $state<Shadps4ModalController | undefined>(undefined);
 	let shaderCacheConfirmDialog = $state<ConfirmDialogController | undefined>(undefined);
@@ -96,7 +99,7 @@
 				applyIndependentSetting: applyIndependentGraphicsSetting
 			}),
 			graphicsValueKey: resolveGraphicsPresetValueKey(graphicsMenuState),
-			onLaunchGame: () => platformApi.invoke(PLATFORM_COMMANDS.LAUNCH_GAME, undefined),
+			onLaunchGame: launchGame,
 			onSavedGames: noopMenuAction,
 			onModManager: noopMenuAction,
 			onEmulator: openShadps4Modal,
@@ -176,6 +179,24 @@
 	}
 
 	function noopMenuAction() {}
+
+	async function launchGame() {
+		if (isGameLaunchPending || isEmbeddedGameActive) {
+			return;
+		}
+
+		isGameLaunchPending = true;
+
+		try {
+			const result = await platformApi.invoke(PLATFORM_COMMANDS.LAUNCH_GAME, undefined);
+
+			if (result.mode === 'embedded') {
+				isEmbeddedGameActive = true;
+			}
+		} finally {
+			isGameLaunchPending = false;
+		}
+	}
 
 	function findFirstEnabledIndex(): number {
 		const nextIndex = currentItems.findIndex((item) => !isMenuItemDisabled(item));
@@ -1162,6 +1183,14 @@
 				if (isPatchModalOpen) {
 					patchModal?.clearText();
 				}
+			},
+			toggleOverlay: () => {
+				if (!isEmbeddedGameActive) {
+					return;
+				}
+
+				playEnterSound();
+				void platformApi.invoke(PLATFORM_COMMANDS.SET_GAME_OVERLAY_OPEN, { open: true });
 			}
 		});
 		const handleControllerChange = createControllerChangeHandler(gamepad);
@@ -1170,6 +1199,12 @@
 
 		window.addEventListener('gamepadconnected', handleControllerChange);
 		window.addEventListener('gamepaddisconnected', handleControllerChange);
+
+		const unsubscribeGameEvents = window.electronAPI?.onGameEvent((event) => {
+			if (event.type === 'session-ended') {
+				isEmbeddedGameActive = false;
+			}
+		});
 
 		void Promise.all([smokeLayerReady, localeReady]).then(async () => {
 			if (!platformApi.isAvailable) {
@@ -1185,6 +1220,7 @@
 			cancelAnimationFrame(gamepad.controllerLoop);
 			window.removeEventListener('gamepadconnected', handleControllerChange);
 			window.removeEventListener('gamepaddisconnected', handleControllerChange);
+			unsubscribeGameEvents?.();
 		};
 	});
 </script>
@@ -1197,154 +1233,168 @@
 
 <div
 	class:controller-mode={isControllerInputActive}
-	class="screen relative flex h-screen w-screen items-center justify-center overflow-hidden bg-black select-none"
+	class:bg-black={!isEmbeddedGameActive}
+	class:bg-transparent={isEmbeddedGameActive}
+	class="screen relative flex h-screen w-screen items-center justify-center overflow-hidden select-none"
 >
 	<audio bind:this={selectAudio} preload="auto" src={asset('/sounds/select.mp3')}></audio>
 	<audio bind:this={enterAudio} preload="auto" src={asset('/sounds/enter.mp3')}></audio>
 
-	<div class="bg-layer absolute inset-0 z-[0]">
-		<img class="bg-image" src={asset('/astral-clock-tower.jpg')} alt="Background" draggable="false" />
-	</div>
-
-	<div class="side-bars pointer-events-none absolute inset-0 z-[1]"></div>
-
-	<div class="smoke-layer pointer-events-none absolute inset-0 z-[2]">
-		<SmokeLayer onReady={handleSmokeLayerReady} />
-	</div>
-
-	<div class="hunter-layer pointer-events-none absolute inset-0 z-[3]">
-		<img class="hunter-image" src={asset('/maria.png')} alt="Hunter" draggable="false" />
-	</div>
-
-	<div class="overlay pointer-events-none absolute inset-0 z-[4]"></div>
-	<div class="vignette pointer-events-none absolute inset-0 z-[5]"></div>
-
-	<div class="grain-layer pointer-events-none absolute inset-0 z-[6]"></div>
-
-	<div class="content-frame relative z-[7] h-full w-full">
-		<div class="logo-layer pointer-events-none absolute inset-0">
-			<img class="bb-logo" src={asset('/bb-logo.png')} alt="Bloodborne logo" draggable="false" />
+	<div class:hidden={isEmbeddedGameActive} class="absolute inset-0">
+		<div class="bg-layer absolute inset-0 z-[0]">
+			<img class="bg-image" src={asset('/astral-clock-tower.jpg')} alt="Background" draggable="false" />
 		</div>
 
-		{#if menuPath.length === 0 || isLauncherInfoModalOpen}
-			<LauncherInfoBox
-				bootstrapState={launcherBootstrapState}
-				isOpen={isLauncherInfoModalOpen}
-				onClose={() => {
-					isLauncherInfoModalOpen = false;
-				}}
-				{playEnterSound}
-			/>
-		{/if}
+		<div class="side-bars pointer-events-none absolute inset-0 z-[1]"></div>
 
-		<div class="relative z-[12] flex h-full w-full items-center justify-center px-4">
-			<div class="flex w-full items-center justify-center">
-				<AppMenu
-					menuPathDepth={menuPath.length}
-					{currentMenu}
-					items={currentItems}
-					{selected}
-					{activeDropdownIndex}
-					{activeDropdownSelectedIndex}
-					inputMode={gamepad.inputMode}
-					{selectedVirtualKeyboardRow}
-					{selectedVirtualKeyboardColumn}
-					isDisabled={(item) => isMenuItemDisabled(item)}
-					onHoverSelect={handleHoverSelect}
-					onActivate={enterSelected}
-					onDropdownHover={handleDropdownHover}
-					onDropdownActivate={activateDropdownOption}
-					onDropdownPointerEnter={handleDropdownPointerEnter}
-					onVirtualKeyboardHover={(row, column) => setVirtualKeyboardSelection(row, column)}
-					onVirtualKeyboardKeyPress={pressVirtualKeyboardKey}
-				/>
+		<div class="smoke-layer pointer-events-none absolute inset-0 z-[2]">
+			<SmokeLayer onReady={handleSmokeLayerReady} />
+		</div>
+
+		<div class="hunter-layer pointer-events-none absolute inset-0 z-[3]">
+			<img class="hunter-image" src={asset('/maria.png')} alt="Hunter" draggable="false" />
+		</div>
+
+		<div class="overlay pointer-events-none absolute inset-0 z-[4]"></div>
+		<div class="vignette pointer-events-none absolute inset-0 z-[5]"></div>
+
+		<div class="grain-layer pointer-events-none absolute inset-0 z-[6]"></div>
+
+		<div class="content-frame relative z-[7] h-full w-full">
+			<div class="logo-layer pointer-events-none absolute inset-0">
+				<img class="bb-logo" src={asset('/bb-logo.png')} alt="Bloodborne logo" draggable="false" />
 			</div>
-		</div>
 
-		{#if selectedMenuDescriptionKey}
-			<div class="pointer-events-none absolute inset-x-0 bottom-24 z-[11] flex justify-center px-4">
-				<div
-					class="w-[min(88vw,520px)] rounded-[22px] border border-[#c8b27a]/12 bg-[linear-gradient(180deg,rgba(16,11,8,0.74),rgba(8,6,5,0.58))] px-5 py-4 shadow-[0_18px_48px_rgba(0,0,0,0.32)] backdrop-blur-[6px]"
-				>
-					{#if selectedMenuDescriptionTitleKey}
-						<div class="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[#ccb57a]/78">
-							{$t(selectedMenuDescriptionTitleKey)}
-						</div>
-					{/if}
+			{#if menuPath.length === 0 || isLauncherInfoModalOpen}
+				<LauncherInfoBox
+					bootstrapState={launcherBootstrapState}
+					isOpen={isLauncherInfoModalOpen}
+					onClose={() => {
+						isLauncherInfoModalOpen = false;
+					}}
+					{playEnterSound}
+				/>
+			{/if}
 
-					<p class="whitespace-pre-line text-[0.84rem] leading-[1.72] text-white/70">
-						{$t(selectedMenuDescriptionKey)}
-					</p>
+			<div class="relative z-[12] flex h-full w-full items-center justify-center px-4">
+				<div class="flex w-full items-center justify-center">
+					<AppMenu
+						menuPathDepth={menuPath.length}
+						{currentMenu}
+						items={currentItems}
+						{selected}
+						{activeDropdownIndex}
+						{activeDropdownSelectedIndex}
+						inputMode={gamepad.inputMode}
+						{selectedVirtualKeyboardRow}
+						{selectedVirtualKeyboardColumn}
+						isDisabled={(item) => isMenuItemDisabled(item)}
+						onHoverSelect={handleHoverSelect}
+						onActivate={enterSelected}
+						onDropdownHover={handleDropdownHover}
+						onDropdownActivate={activateDropdownOption}
+						onDropdownPointerEnter={handleDropdownPointerEnter}
+						onVirtualKeyboardHover={(row, column) => setVirtualKeyboardSelection(row, column)}
+						onVirtualKeyboardKeyPress={pressVirtualKeyboardKey}
+					/>
 				</div>
 			</div>
-		{/if}
 
-		{#if isPatchModalOpen}
-			<PatchModal
-				bind:this={patchModal}
+			{#if selectedMenuDescriptionKey}
+				<div class="pointer-events-none absolute inset-x-0 bottom-24 z-[11] flex justify-center px-4">
+					<div
+						class="w-[min(88vw,520px)] rounded-[22px] border border-[#c8b27a]/12 bg-[linear-gradient(180deg,rgba(16,11,8,0.74),rgba(8,6,5,0.58))] px-5 py-4 shadow-[0_18px_48px_rgba(0,0,0,0.32)] backdrop-blur-[6px]"
+					>
+						{#if selectedMenuDescriptionTitleKey}
+							<div class="mb-2 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[#ccb57a]/78">
+								{$t(selectedMenuDescriptionTitleKey)}
+							</div>
+						{/if}
+
+						<p class="whitespace-pre-line text-[0.84rem] leading-[1.72] text-white/70">
+							{$t(selectedMenuDescriptionKey)}
+						</p>
+					</div>
+				</div>
+			{/if}
+
+			{#if isPatchModalOpen}
+				<PatchModal
+					bind:this={patchModal}
+					inputMode={gamepad.inputMode}
+					isXboxControllerConnected={gamepad.isXboxControllerConnected}
+					isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
+					onClose={closePatchModal}
+					onKeyboardInput={() => setKeyboardInputMode(gamepad)}
+					{playSelectSound}
+					{playEnterSound}
+				/>
+			{/if}
+
+			{#if isShadps4ModalOpen}
+				<Shadps4Modal
+					bind:this={shadps4Modal}
+					inputMode={gamepad.inputMode}
+					isXboxControllerConnected={gamepad.isXboxControllerConnected}
+					isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
+					shadps4={launcherBootstrapState?.emulator.shadps4 ?? null}
+					onClose={closeShadps4Modal}
+					onUpdate={updateShadps4}
+					{playEnterSound}
+				/>
+			{/if}
+
+			{#if isShaderCacheConfirmOpen}
+				<ConfirmDialog
+					bind:this={shaderCacheConfirmDialog}
+					titleKey="generalSettings.shaderCache.confirmTitle"
+					messageKey="generalSettings.shaderCache.confirmMessage"
+					inputMode={gamepad.inputMode}
+					isXboxControllerConnected={gamepad.isXboxControllerConnected}
+					isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
+					onConfirm={confirmShaderCacheDelete}
+					onCancel={closeShaderCacheConfirmDialog}
+					{playSelectSound}
+					{playEnterSound}
+				/>
+			{/if}
+
+			<InputPrompts
+				class="absolute bottom-6 left-8 z-20"
 				inputMode={gamepad.inputMode}
 				isXboxControllerConnected={gamepad.isXboxControllerConnected}
 				isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
-				onClose={closePatchModal}
-				onKeyboardInput={() => setKeyboardInputMode(gamepad)}
-				{playSelectSound}
-				{playEnterSound}
+				showInfo={isLauncherInfoPromptVisible}
 			/>
-		{/if}
 
-		{#if isShadps4ModalOpen}
-			<Shadps4Modal
-				bind:this={shadps4Modal}
-				inputMode={gamepad.inputMode}
-				isXboxControllerConnected={gamepad.isXboxControllerConnected}
-				isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
-				shadps4={launcherBootstrapState?.emulator.shadps4 ?? null}
-				onClose={closeShadps4Modal}
-				onUpdate={updateShadps4}
-				{playEnterSound}
-			/>
-		{/if}
-
-		{#if isShaderCacheConfirmOpen}
-			<ConfirmDialog
-				bind:this={shaderCacheConfirmDialog}
-				titleKey="generalSettings.shaderCache.confirmTitle"
-				messageKey="generalSettings.shaderCache.confirmMessage"
-				inputMode={gamepad.inputMode}
-				isXboxControllerConnected={gamepad.isXboxControllerConnected}
-				isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
-				onConfirm={confirmShaderCacheDelete}
-				onCancel={closeShaderCacheConfirmDialog}
-				{playSelectSound}
-				{playEnterSound}
-			/>
-		{/if}
-
-		<InputPrompts
-			class="absolute bottom-6 left-8 z-20"
-			inputMode={gamepad.inputMode}
-			isXboxControllerConnected={gamepad.isXboxControllerConnected}
-			isDualSenseControllerConnected={gamepad.isDualSenseControllerConnected}
-			showInfo={isLauncherInfoPromptVisible}
-		/>
-
-		<div
-			class="absolute bottom-5 right-7 z-20 flex flex-col items-end gap-[2px] text-[0.72rem] tracking-[0.08em] text-white/40 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] max-sm:bottom-4 max-sm:right-4 max-sm:text-[0.64rem]"
-		>
-			<div>
-				<a
-					class="text-blue-400 drop-shadow-[0_0_8px_rgba(0, 143, 255, 0.6)]"
-					target="_blank"
-					rel="noopener noreferrer"
-					href={app.github}
-				>
-					{app.appShortTitle}
-				</a>
+			<div
+				class="absolute bottom-5 right-7 z-20 flex flex-col items-end gap-[2px] text-[0.72rem] tracking-[0.08em] text-white/40 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] max-sm:bottom-4 max-sm:right-4 max-sm:text-[0.64rem]"
+			>
+				<div>
+					<a
+						class="text-blue-400 drop-shadow-[0_0_8px_rgba(0, 143, 255, 0.6)]"
+						target="_blank"
+						rel="noopener noreferrer"
+						href={app.github}
+					>
+						{app.appShortTitle}
+					</a>
+				</div>
+				<div>{$t('app.version', { version: app.appVer })}</div>
+				<div>{app.buildTitle}</div>
 			</div>
-			<div>{$t('app.version', { version: app.appVer })}</div>
-			<div>{app.buildTitle}</div>
 		</div>
 	</div>
+
+	{#if isGameLaunchPending}
+		<div class="absolute inset-0 z-50 flex items-center justify-center bg-black/62 backdrop-blur-[2px]">
+			<div
+				class="rounded-[28px] border border-[#f2e4b6]/18 bg-[radial-gradient(circle_at_50%_0%,rgba(242,228,182,0.13),transparent_48%),rgba(6,6,5,0.86)] px-10 py-9 shadow-[0_26px_80px_rgba(0,0,0,0.54)]"
+			>
+				<AppLoading statusKey="splash.launchingGame" compact />
+			</div>
+		</div>
+	{/if}
 
 	{#if isIntroOverlayVisible}
 		<div

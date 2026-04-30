@@ -89,7 +89,7 @@
 		return [
 			{
 				labelKey: 'menu.main.start',
-				action: options.onLaunchGame ?? (() => platformApi.invoke(PLATFORM_COMMANDS.LAUNCH_GAME, undefined))
+				action: options.onLaunchGame ?? (() => void platformApi.invoke(PLATFORM_COMMANDS.LAUNCH_GAME, undefined))
 			},
 			{
 				labelKey: 'menu.main.savedGames',

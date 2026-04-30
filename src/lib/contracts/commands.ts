@@ -10,6 +10,10 @@ export const PLATFORM_COMMANDS = {
     GET_SHADPS4_GENERAL_SETTINGS: 'emulator:get-general-settings',
     SAVE_SHADPS4_GENERAL_SETTINGS: 'emulator:save-general-settings',
     DELETE_SHADPS4_SHADER_CACHE: 'emulator:delete-shader-cache',
+    STOP_GAME: 'launcher:stop-game',
+    TOGGLE_GAME_PAUSE: 'launcher:toggle-game-pause',
+    SET_GAME_OVERLAY_OPEN: 'launcher:set-game-overlay-open',
+    SET_EMBEDDED_GAME_OVERLAY_VISIBLE: 'launcher:set-embedded-game-overlay-visible',
     READ_CLIPBOARD_TEXT: 'clipboard:read-text',
     RENDERER_SCENE_READY: 'app:renderer-scene-ready',
     GET_LAUNCHER_BOOTSTRAP_STATE: 'app:get-launcher-bootstrap-state',
@@ -116,6 +120,10 @@ export interface DeleteShadps4ShaderCacheResult {
     path: string | null;
 }
 
+export interface LaunchGameResult {
+    mode: 'embedded' | 'standalone';
+}
+
 export interface PlatformCommandMap {
     [PLATFORM_COMMANDS.APP_EXIT]: {
         payload: undefined;
@@ -124,6 +132,30 @@ export interface PlatformCommandMap {
 
     [PLATFORM_COMMANDS.LAUNCH_GAME]: {
         payload: undefined;
+        result: LaunchGameResult;
+    };
+
+    [PLATFORM_COMMANDS.STOP_GAME]: {
+        payload: undefined;
+        result: void;
+    };
+
+    [PLATFORM_COMMANDS.TOGGLE_GAME_PAUSE]: {
+        payload: undefined;
+        result: void;
+    };
+
+    [PLATFORM_COMMANDS.SET_GAME_OVERLAY_OPEN]: {
+        payload: {
+            open: boolean;
+        };
+        result: void;
+    };
+
+    [PLATFORM_COMMANDS.SET_EMBEDDED_GAME_OVERLAY_VISIBLE]: {
+        payload: {
+            visible: boolean;
+        };
         result: void;
     };
 

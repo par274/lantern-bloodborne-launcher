@@ -5,6 +5,8 @@
 		| 'dualsense-cross'
 		| 'dualsense-square'
 		| 'dualsense-triangle'
+		| 'game-exit'
+		| 'game-resume'
 		| 'globe'
 		| 'keyboard-backspace'
 		| 'keyboard-enter'
@@ -29,6 +31,8 @@
 		'dualsense-cross': 'color: #59b2ff; filter: drop-shadow(0 0 6px rgba(89,178,255,0.55));',
 		'dualsense-square': 'color: #ff7ac8; filter: drop-shadow(0 0 6px rgba(255,122,200,0.55));',
 		'dualsense-triangle': 'color: #67e8f9; filter: drop-shadow(0 0 6px rgba(103,232,249,0.55));',
+		'game-exit': 'color: currentColor;',
+		'game-resume': 'color: currentColor;',
 		'keyboard-backspace': 'color: rgb(239 68 68); filter: drop-shadow(0 0 6px rgba(239,68,68,0.6));',
 		'keyboard-enter': 'color: rgb(34 197 94); filter: drop-shadow(0 0 6px rgba(34,197,94,0.6));',
 		'keyboard-i': 'color: #fff;',
@@ -43,6 +47,8 @@
 	const DEFAULT_ICON_SIZE: Partial<Record<AppIconName, number>> = {
 		'dualsense-square': 22,
 		'dualsense-triangle': 22,
+		'game-exit': 24,
+		'game-resume': 24,
 		'keyboard-backspace': 24,
 		'keyboard-enter': 24,
 		'keyboard-i': 22,
@@ -165,6 +171,27 @@
 		<path stroke="none" d="M0 0h24v24H0z" fill="none" />
 		<path d="M12 21a9 9 0 0 0 9 -9a9 9 0 0 0 -9 -9a9 9 0 0 0 -9 9a9 9 0 0 0 9 9" />
 		<path d="M7.5 15h9l-4.5 -8l-4.5 8" />
+	</svg>
+{:else if name === 'game-exit'}
+	<svg class={className} style={resolvedStyle} viewBox="0 0 24 24" fill="currentColor">
+		<path stroke="none" d="M0 0h24v24H0z" fill="none" />
+		<path
+			d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414"
+		/>
+	</svg>
+{:else if name === 'game-resume'}
+	<svg
+		class={className}
+		style={resolvedStyle}
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+	>
+		<path stroke="none" d="M0 0h24v24H0z" fill="none" />
+		<path d="M7 4v16l13 -8l-13 -8" />
 	</svg>
 {:else if name === 'keyboard-enter'}
 	<svg

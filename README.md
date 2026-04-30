@@ -12,6 +12,7 @@ An alternative to BB_Launcher that allows you to control Bloodborne fully intera
 ## Features
 
 * Borderless console-like GPU accelerated UI
+* In-game overlay support (only on Windows)
 * Fully designed for controllers (Xbox 360/One & DualSense) and keyboard & mouse
 * Bundled graphics settings
 * Auto ShadPS4 downloader, updater
@@ -31,9 +32,12 @@ An alternative to BB_Launcher that allows you to control Bloodborne fully intera
 ### Linux / macOS
 
 * Download the build for your platform from Releases.
-* macOS: open the `.dmg` and move the app where you want.
-* Linux: run the AppImage, and mark it executable first if your desktop asks for it.
+* Extract the package and run `./app`.
 * On first launch, choose your Bloodborne game folder. Lantern handles the initial shadPS4 setup for you.
+
+### Headless
+
+* Use `./app -n` after the first setup if you want to skip the launcher UI and start Bloodborne directly.
 
 ## Compatible
 
@@ -48,24 +52,11 @@ Now only support languages are English and Turkish.
 
 ## Build
 
-### Windows
-
-Windows requires the DotNet SDK specifically. This is how we manage UAC operations, because Squirrel.Windows is deprecated for electron-builder.
-
-* Requirements: Node.js 20+, npm, .NET SDK.
-* Install dependencies with `npm install`.
-* Run the app in dev mode with `npm run dev`.
-* Create the portable package with `npm run dist:portable`.
-* Create the installer build with `npm run dist:installer`.
-
-### Linux / macOS
-
-* Requirements: Node.js 20+, npm.
+* Requirements: Node.js 20+, npm, .NET SDK 10.
 * Install dependencies with `npm install`.
 * Run the app in dev mode with `npm run dev`.
 * Build renderer and Electron output with `npm run build`.
-* Package for macOS with `npx electron-builder --config .build/dist/electron/config.cjs --mac`.
-* Package for Linux with `npx electron-builder --config .build/dist/electron/config.cjs --linux`.
+* Create CI-style zip packages with `npm run dist:ci`.
 
 ### In VSCode Tasks
 

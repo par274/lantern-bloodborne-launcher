@@ -23,7 +23,6 @@
         "build": "npm run check && vite build",
         "start": "npm run build && electron .",
         "dist:portable": "npm run build && electron-builder --config .build/dist/electron/config.cjs --dir",
-        "dist:installer": "npm run build && electron-builder --config .build/dist/electron/config.cjs",
         "dist:ci": "npm run build && electron-builder --config .build/dist/electron/config.cjs",
         "clean": "rimraf .svelte-kit .build"
     },

@@ -1,17 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
-        <TargetFramework>net8.0-windows</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <RuntimeIdentifiers>win-x64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <UseWindowsForms>true</UseWindowsForms>
         <AssemblyName>app</AssemblyName>
         <TargetName>app</TargetName>
-        <RootNamespace>Lantern.WindowsLauncher</RootNamespace>
-        <ApplicationIcon>..\..\build\icon.ico</ApplicationIcon>
-        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <RootNamespace>Lantern.NativeHost</RootNamespace>
+        <ApplicationIcon Condition="'$(RuntimeIdentifier)' == 'win-x64' Or '$(RuntimeIdentifier)' == 'win-arm64'">..\..\build\icon.ico</ApplicationIcon>
+        <ApplicationManifest Condition="'$(RuntimeIdentifier)' == 'win-x64' Or '$(RuntimeIdentifier)' == 'win-arm64'">app.manifest</ApplicationManifest>
         <PublishSingleFile>true</PublishSingleFile>
         <SelfContained>true</SelfContained>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
         <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
         <DebugType>none</DebugType>
         <DebugSymbols>false</DebugSymbols>
@@ -19,7 +20,7 @@
         <LauncherDescription Condition="'$(LauncherDescription)' == ''">LanternLauncher bootstrap</LauncherDescription>
         <LauncherCompany Condition="'$(LauncherCompany)' == ''">par274</LauncherCompany>
         <LauncherCopyright Condition="'$(LauncherCopyright)' == ''">Copyright (c) 2026 par274</LauncherCopyright>
-        <LauncherVersion Condition="'$(LauncherVersion)' == ''">0.0.1</LauncherVersion>
+        <LauncherVersion Condition="'$(LauncherVersion)' == ''">0.0.6</LauncherVersion>
         <Product>$(LauncherProductName)</Product>
         <AssemblyTitle>$(LauncherProductName)</AssemblyTitle>
         <Company>$(LauncherCompany)</Company>
@@ -31,4 +32,10 @@
         <FileVersion>$(LauncherVersion)</FileVersion>
         <InformationalVersion>$(LauncherVersion)</InformationalVersion>
     </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Remove="bin\**" />
+        <Compile Remove="obj\**" />
+    </ItemGroup>
+
 </Project>

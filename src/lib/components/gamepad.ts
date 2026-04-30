@@ -13,6 +13,7 @@ export type GamepadState = {
 	buttonHeldB: boolean;
 	buttonHeldX: boolean;
 	buttonHeldY: boolean;
+	buttonHeldOverlayToggle: boolean;
 	buttonHeldLeftShoulder: boolean;
 	buttonHeldRightShoulder: boolean;
 	inputMode: InputMode;
@@ -31,6 +32,7 @@ type ControllerActions = {
 	confirmText: () => void;
 	insertSpace: () => void;
 	clearText: () => void;
+	toggleOverlay?: () => void;
 };
 
 const AXIS_DEADZONE = 0.55;
@@ -52,6 +54,7 @@ export function createGamepadState(): GamepadState {
 		buttonHeldB: false,
 		buttonHeldX: false,
 		buttonHeldY: false,
+		buttonHeldOverlayToggle: false,
 		buttonHeldLeftShoulder: false,
 		buttonHeldRightShoulder: false,
 		inputMode: 'keyboard',
@@ -187,6 +190,7 @@ export function handleControllerInput(state: GamepadState, actions: ControllerAc
 		state.buttonHeldB = false;
 		state.buttonHeldX = false;
 		state.buttonHeldY = false;
+		state.buttonHeldOverlayToggle = false;
 		state.buttonHeldLeftShoulder = false;
 		state.buttonHeldRightShoulder = false;
 
@@ -282,6 +286,13 @@ export function handleControllerInput(state: GamepadState, actions: ControllerAc
 		actions.confirmText();
 	}
 	state.buttonHeldY = yPressed;
+
+	const overlayTogglePressed = !!controller.buttons[10]?.pressed && !!controller.buttons[11]?.pressed;
+	if (overlayTogglePressed && !state.buttonHeldOverlayToggle) {
+		setDetectedControllerInputMode(state);
+		actions.toggleOverlay?.();
+	}
+	state.buttonHeldOverlayToggle = overlayTogglePressed;
 
 	const leftShoulderPressed = !!controller.buttons[4]?.pressed;
 	if (leftShoulderPressed && !state.buttonHeldLeftShoulder) {

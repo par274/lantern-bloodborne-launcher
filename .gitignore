@@ -3,6 +3,11 @@ node_modules/
 .build/
 .env
 
+.dotnet/
+.nuget/
+obj/
+bin/
+
 *.log
 .DS_Store
 Thumbs.db
