@@ -12,7 +12,6 @@ type SupportedArch = 'x64' | 'arm64';
 
 const nativeHostProjectPath = path.resolve(process.cwd(), 'native', 'host', 'LanternLauncherHost.csproj');
 const nativeHostBuildRoot = path.resolve(process.cwd(), '.build', 'dotnet', 'native-host');
-const nestedAppDirectoryName = 'app';
 const windowsLauncherIconFileName = 'app.ico';
 const packageLifecycleScript = process.env.npm_lifecycle_event ?? '';
 
@@ -135,6 +134,10 @@ function resolveDotnetRuntime(platform: SupportedPlatform, arch: SupportedArch):
 
 function resolveNativeHostExecutableName(platform: SupportedPlatform): string {
     return platform === 'win32' ? 'app.exe' : 'app';
+}
+
+function resolveNestedAppDirectoryName(platform: SupportedPlatform): string {
+    return 'app0';
 }
 
 function resolveNativeHostPublishDir(runtime: string): string {
@@ -345,6 +348,7 @@ async function movePackagedAppIntoNestedDirectory(
     platform: SupportedPlatform
 ): Promise<void> {
     const nativeHostExecutableName = resolveNativeHostExecutableName(platform);
+    const nestedAppDirectoryName = resolveNestedAppDirectoryName(platform);
     const nestedAppDir = path.join(appOutDir, nestedAppDirectoryName);
 
     await rm(nestedAppDir, { recursive: true, force: true });
@@ -374,6 +378,7 @@ async function wrapNativeLayeredDirectory(
 ): Promise<void> {
     const nativeHostExecutableName = resolveNativeHostExecutableName(platform);
     const nativeHostOutputPath = path.join(appOutDir, nativeHostExecutableName);
+    const nestedAppDirectoryName = resolveNestedAppDirectoryName(platform);
     const nestedAppDir = path.join(appOutDir, nestedAppDirectoryName);
 
     if (existsSync(nativeHostOutputPath) && existsSync(nestedAppDir)) {

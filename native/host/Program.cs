@@ -8,7 +8,7 @@ using System.Text.Json;
 
 internal static class Program
 {
-    private const string NestedAppDirectoryName = "app";
+    private const string NestedAppDirectoryName = "app0";
     private const string LauncherDirectoryName = "LanternLauncher";
     private const string LauncherEmuDirectoryName = "emu";
     private const string LauncherConfigFileName = "config.json";
@@ -115,12 +115,12 @@ internal static class Program
     private static async Task<int> LaunchElectronAppShell(string[] args, NativeHostOutput output)
     {
         var launcherDirectory = AppContext.BaseDirectory;
-        var appDirectory = Path.Combine(launcherDirectory, NestedAppDirectoryName);
+        var appDirectory = Path.Combine(launcherDirectory, ResolveNestedAppDirectoryName());
         var innerExecutablePath = ResolveInnerExecutablePath(appDirectory);
 
         if (innerExecutablePath is null)
         {
-            throw new FileNotFoundException("The embedded launcher files could not be found in the app folder.");
+            throw new FileNotFoundException("The embedded launcher files could not be found in the app0 folder.");
         }
 
         using var commandServer = new HostCommandServer(output);
@@ -208,6 +208,11 @@ internal static class Program
         }
 
         return startInfo;
+    }
+
+    private static string ResolveNestedAppDirectoryName()
+    {
+        return NestedAppDirectoryName;
     }
 
     private static async Task<int> LaunchGameFromConfig(
