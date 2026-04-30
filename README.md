@@ -2,9 +2,9 @@
 
 An alternative to BB_Launcher that allows you to control Bloodborne fully interactively on an emulator and offers presets.
 
-| Main Menu | Graphics | Patches |
-|----------|----------|----------|
-| ![Main Menu](./.github/screenshots/1.jpg) | ![Graphics](./.github/screenshots/2.jpg) | ![Patches](./.github/screenshots/3.jpg) |
+| Main Menu | Graphics | Patches | In-Game overlay |
+|----------|----------|----------|-----------------|
+| ![Main Menu](./.github/screenshots/1.jpg) | ![Graphics](./.github/screenshots/2.jpg) | ![Patches](./.github/screenshots/3.jpg) | ![In-game overlay](./.github/screenshots/4.jpg)
 
 > [!WARNING]  
 > This project is in a early stage. The launcher is available for use, but some of features are not yet fully developed.
