@@ -27,15 +27,51 @@
 		onExit
 	}: Props = $props();
 
+	let isControllerPromptVisible = $derived(
+		(inputMode === 'xbox' && isXboxControllerConnected) || (inputMode === 'dualsense' && isDualSenseControllerConnected)
+	);
+
 	const actions = [
+		{
+			icon: 'game-home' as const,
+			labelKey: 'gameOverlay.home' as const,
+			enabled: false,
+			action: () => {}
+		},
 		{
 			icon: 'game-resume' as const,
 			labelKey: 'gameOverlay.resume' as const,
+			enabled: true,
 			action: () => onResume()
+		},
+		{
+			icon: 'game-focus' as const,
+			labelKey: 'gameOverlay.focus' as const,
+			enabled: false,
+			action: () => {}
+		},
+		{
+			icon: 'game-music' as const,
+			labelKey: 'gameOverlay.music' as const,
+			enabled: false,
+			action: () => {}
+		},
+		{
+			icon: 'game-volume' as const,
+			labelKey: 'gameOverlay.volume' as const,
+			enabled: false,
+			action: () => {}
+		},
+		{
+			icon: 'game-settings' as const,
+			labelKey: 'gameOverlay.settings' as const,
+			enabled: false,
+			action: () => {}
 		},
 		{
 			icon: 'game-exit' as const,
 			labelKey: 'gameOverlay.exit' as const,
+			enabled: true,
 			action: () => onExit()
 		}
 	];
@@ -43,75 +79,75 @@
 
 <div class="absolute inset-0 z-40 text-white">
 	<div
-		class="game-overlay-backdrop pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.12),rgba(0,0,0,0.34)_58%,rgba(0,0,0,0.7)_100%)]"
+		class="game-overlay-backdrop pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0.2)_0%,rgba(0,0,0,0.16)_48%,rgba(0,0,0,0.28)_100%)]"
 	></div>
 
 	<div
-		class="game-overlay-panel absolute inset-x-0 bottom-0 flex h-[280px] flex-col justify-end bg-[linear-gradient(180deg,transparent_0%,rgba(0,0,0,0.18)_22%,rgba(0,0,0,0.66)_70%,rgba(0,0,0,0.9)_100%)] px-16 pb-9"
+		class="game-overlay-panel absolute inset-x-0 bottom-0 flex h-[16vh] min-h-[110px] flex-col justify-end bg-[linear-gradient(180deg,transparent_0%,rgb(0,0,0)_5px,rgb(0,0,0)_100%)] px-12 pb-3 pt-3"
 	>
-		<div class="mb-8 flex items-end justify-center gap-16">
+		<div class="mb-5 flex items-end justify-center gap-10">
 			{#each actions as action, index}
 				<button
-					class={`group flex w-[88px] flex-col items-center justify-end gap-3 transition duration-150 ${
-						selected === index ? '-translate-y-1 opacity-100' : 'opacity-55 hover:opacity-80'
-					}`}
-					disabled={isStopping}
-					onmouseenter={() => onSelect(index)}
+					class={`group relative flex min-w-[56px] flex-col items-center justify-end gap-2 rounded-[3px] transition duration-150 ${
+						selected === index ? 'opacity-100' : 'opacity-42 hover:opacity-72'
+					} ${action.enabled ? '' : 'cursor-default'}`}
+					disabled={isStopping || !action.enabled}
+					onmouseenter={() => {
+						if (action.enabled) {
+							onSelect(index);
+						}
+					}}
 					onclick={() => action.action()}
 					type="button"
 				>
 					<span
-						class={`flex h-[44px] w-[44px] items-center justify-center rounded-full transition duration-150 ${
-							selected === index
-								? 'bg-white/14 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.86),0_0_18px_rgba(255,255,255,0.12)]'
-								: 'text-white/62'
+						class={`relative z-10 text-[0.68rem] leading-none text-white/86 transition ${
+							selected === index ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'
 						}`}
 					>
-						<AppIcon name={action.icon} class={`h-6 w-6 transition-transform duration-150 ${selected === index ? 'scale-110' : ''}`} />
+						{$t(action.labelKey)}
 					</span>
 					<span
-						class={`text-[0.62rem] font-bold uppercase tracking-[0.16em] ${selected === index ? 'text-white' : 'text-white/58'}`}
+						class={`relative z-10 flex items-center justify-center rounded-[4px] transition duration-150 ${
+							selected === index
+								? 'scale-105 border border-[#f0dfad]/46 bg-[radial-gradient(circle_at_50%_0%,rgba(241,219,158,0.22),transparent_52%),linear-gradient(180deg,rgba(211,181,103,0.16),rgba(18,15,10,0.34)_54%,rgba(5,5,5,0.44))] p-[13px] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12),inset_0_0_30px_rgba(209,170,88,0.12),0_15px_34px_rgba(0,0,0,0.44),0_0_22px_rgba(209,170,88,0.13)] backdrop-blur-[12px]'
+								: 'p-[9px] text-white/72'
+						}`}
 					>
-						{$t(action.labelKey)}
+						<AppIcon
+							name={action.icon}
+							class={`h-[22px] w-[22px] transition-transform duration-150 ${selected === index ? 'scale-105' : ''}`}
+						/>
 					</span>
 				</button>
 			{/each}
 		</div>
 
-		<div class="flex items-center justify-end gap-5">
-			{#if inputMode === 'xbox' && isXboxControllerConnected}
+		<div class="flex h-[46px] items-center justify-end gap-5 border-t border-white/8 pt-[10px] pb-[5px]">
+			{#if isControllerPromptVisible}
 				<div class="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white/80">
-					<span class="rounded border border-white/24 bg-black/24 px-1.5 py-0.5 text-[0.58rem] text-white">L3</span>
+					<AppIcon name="controller-l3" size={22} />
 					<span class="text-white/50">+</span>
-					<span class="rounded border border-white/24 bg-black/24 px-1.5 py-0.5 text-[0.58rem] text-white">R3</span>
+					<AppIcon name="controller-r3" size={22} />
 					<span>{$t('gameOverlay.menuPrompt')}</span>
 				</div>
-			{:else if inputMode === 'dualsense' && isDualSenseControllerConnected}
-				<div class="flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white/80">
-					<span class="rounded border border-white/24 bg-black/24 px-1.5 py-0.5 text-[0.58rem] text-white">L3</span>
-					<span class="text-white/50">+</span>
-					<span class="rounded border border-white/24 bg-black/24 px-1.5 py-0.5 text-[0.58rem] text-white">R3</span>
-					<span>{$t('gameOverlay.menuPrompt')}</span>
+				<InputPrompts {inputMode} {isXboxControllerConnected} {isDualSenseControllerConnected} compact />
+			{:else}
+				<InputPrompts {inputMode} {isXboxControllerConnected} {isDualSenseControllerConnected} compact />
+				<div class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-white/62">
+					<span class="text-white">F1</span>
+					{$t('gameOverlay.menuPrompt')}
 				</div>
 			{/if}
-			<InputPrompts
-				inputMode={inputMode}
-				isXboxControllerConnected={isXboxControllerConnected}
-				isDualSenseControllerConnected={isDualSenseControllerConnected}
-				compact
-			/>
-			<div class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-white/62">
-				<span class="text-white">F1</span> {$t('gameOverlay.menuPrompt')}
-			</div>
 		</div>
 	</div>
 
 	{#if isStopping}
-		<div class="absolute inset-0 z-10 flex items-center justify-center bg-black/52 backdrop-blur-[2px]">
+		<div class="absolute inset-0 z-10 flex items-center justify-center bg-black/76 backdrop-blur-[2px]">
 			<div
-				class="rounded-[28px] border border-[#f2e4b6]/18 bg-[radial-gradient(circle_at_50%_0%,rgba(242,228,182,0.13),transparent_48%),rgba(6,6,5,0.84)] px-10 py-9 shadow-[0_26px_80px_rgba(0,0,0,0.54)]"
+				class="rounded-[28px] border border-[#f2e4b6]/20 bg-[radial-gradient(circle_at_50%_0%,rgba(242,228,182,0.15),transparent_48%),rgba(6,6,5,0.96)] px-10 py-9 shadow-[0_26px_80px_rgba(0,0,0,0.66)]"
 			>
-				<AppLoading statusKey="splash.stoppingGame" compact />
+				<AppLoading titleKey="splash.exitingGameTitle" statusKey="splash.stoppingGame" compact />
 			</div>
 		</div>
 	{/if}
@@ -125,6 +161,11 @@
 	.game-overlay-panel {
 		animation: gameOverlayPanelSlide 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
 		will-change: transform, opacity;
+	}
+
+	.group > span {
+		transition-duration: 260ms;
+		transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	@keyframes gameOverlayBackdropFade {

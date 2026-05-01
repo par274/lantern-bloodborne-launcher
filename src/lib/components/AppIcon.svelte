@@ -1,12 +1,19 @@
 <script lang="ts">
 	type AppIconName =
 		| 'chevron-down'
+		| 'controller-l3'
+		| 'controller-r3'
 		| 'dualsense-circle'
 		| 'dualsense-cross'
 		| 'dualsense-square'
 		| 'dualsense-triangle'
 		| 'game-exit'
+		| 'game-focus'
+		| 'game-home'
+		| 'game-music'
 		| 'game-resume'
+		| 'game-settings'
+		| 'game-volume'
 		| 'globe'
 		| 'keyboard-backspace'
 		| 'keyboard-enter'
@@ -27,12 +34,19 @@
 	};
 
 	const DEFAULT_ICON_STYLE: Partial<Record<AppIconName, string>> = {
+		'controller-l3': 'color: rgba(255,255,255,0.16); filter: drop-shadow(0 0 7px rgba(255,255,255,0.18));',
+		'controller-r3': 'color: rgba(255,255,255,0.16); filter: drop-shadow(0 0 7px rgba(255,255,255,0.18));',
 		'dualsense-circle': 'color: #ff6b76; filter: drop-shadow(0 0 6px rgba(255,107,118,0.55));',
 		'dualsense-cross': 'color: #59b2ff; filter: drop-shadow(0 0 6px rgba(89,178,255,0.55));',
 		'dualsense-square': 'color: #ff7ac8; filter: drop-shadow(0 0 6px rgba(255,122,200,0.55));',
 		'dualsense-triangle': 'color: #67e8f9; filter: drop-shadow(0 0 6px rgba(103,232,249,0.55));',
 		'game-exit': 'color: currentColor;',
+		'game-focus': 'color: currentColor;',
+		'game-home': 'color: currentColor;',
+		'game-music': 'color: currentColor;',
 		'game-resume': 'color: currentColor;',
+		'game-settings': 'color: currentColor;',
+		'game-volume': 'color: currentColor;',
 		'keyboard-backspace': 'color: rgb(239 68 68); filter: drop-shadow(0 0 6px rgba(239,68,68,0.6));',
 		'keyboard-enter': 'color: rgb(34 197 94); filter: drop-shadow(0 0 6px rgba(34,197,94,0.6));',
 		'keyboard-i': 'color: #fff;',
@@ -45,10 +59,17 @@
 	};
 
 	const DEFAULT_ICON_SIZE: Partial<Record<AppIconName, number>> = {
+		'controller-l3': 24,
+		'controller-r3': 24,
 		'dualsense-square': 22,
 		'dualsense-triangle': 22,
 		'game-exit': 24,
+		'game-focus': 24,
+		'game-home': 24,
+		'game-music': 24,
 		'game-resume': 24,
+		'game-settings': 24,
+		'game-volume': 24,
 		'keyboard-backspace': 24,
 		'keyboard-enter': 24,
 		'keyboard-i': 22,
@@ -71,7 +92,23 @@
 	const resolvedStyle = $derived(resolveStyle(name, size, style));
 </script>
 
-{#if name === 'xbox-a'}
+{#if name === 'controller-l3'}
+	<svg class={className} style={resolvedStyle} viewBox="0 0 64 64" fill="none">
+		<circle cx="32" cy="32" r="28" fill="currentColor" />
+		<circle cx="32" cy="32" r="23" stroke="white" stroke-width="3" />
+		<text x="32" y="40" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="white">
+			L3
+		</text>
+	</svg>
+{:else if name === 'controller-r3'}
+	<svg class={className} style={resolvedStyle} viewBox="0 0 64 64" fill="none">
+		<circle cx="32" cy="32" r="28" fill="currentColor" />
+		<circle cx="32" cy="32" r="23" stroke="white" stroke-width="3" />
+		<text x="32" y="40" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="400" fill="white">
+			R3
+		</text>
+	</svg>
+{:else if name === 'xbox-a'}
 	<svg class={className} style={resolvedStyle} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 		<path d="M12 21a9 9 0 0 0 9 -9a9 9 0 0 0 -9 -9a9 9 0 0 0 -9 9a9 9 0 0 0 9 9" />
 		<path d="M15 16l-3 -8l-3 8" />
@@ -179,6 +216,47 @@
 			d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414"
 		/>
 	</svg>
+{:else if name === 'game-focus'}
+	<svg
+		class={className}
+		style={resolvedStyle}
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+	>
+		<path d="M6 4v4" />
+		<path d="M4 6h4" />
+		<path d="M18 4v4" />
+		<path d="M16 6h4" />
+		<path d="M6 16v4" />
+		<path d="M4 18h4" />
+		<path d="M18 16v4" />
+		<path d="M16 18h4" />
+		<path d="M12 9v6" />
+		<path d="M9 12h6" />
+	</svg>
+{:else if name === 'game-home'}
+	<svg class={className} style={resolvedStyle} viewBox="0 0 24 24" fill="currentColor">
+		<path d="M4 11.5l8 -7.5l8 7.5v7.5a1 1 0 0 1 -1 1h-5v-5h-4v5h-5a1 1 0 0 1 -1 -1z" />
+	</svg>
+{:else if name === 'game-music'}
+	<svg
+		class={className}
+		style={resolvedStyle}
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+	>
+		<path d="M9 18v-12l10 -2v12" />
+		<path d="M9 18a3 3 0 1 1 -3 -3a3 3 0 0 1 3 3" />
+		<path d="M19 16a3 3 0 1 1 -3 -3a3 3 0 0 1 3 3" />
+	</svg>
 {:else if name === 'game-resume'}
 	<svg
 		class={className}
@@ -192,6 +270,39 @@
 	>
 		<path stroke="none" d="M0 0h24v24H0z" fill="none" />
 		<path d="M7 4v16l13 -8l-13 -8" />
+	</svg>
+{:else if name === 'game-settings'}
+	<svg
+		class={className}
+		style={resolvedStyle}
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+	>
+		<path d="M4 8h4" />
+		<path d="M6 6v4" />
+		<path d="M12 6h8" />
+		<path d="M4 16h10" />
+		<path d="M18 14v4" />
+		<path d="M16 16h4" />
+	</svg>
+{:else if name === 'game-volume'}
+	<svg
+		class={className}
+		style={resolvedStyle}
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+	>
+		<path d="M4 10v4h4l5 5v-14l-5 5z" />
+		<path d="M16 9a4 4 0 0 1 0 6" />
+		<path d="M19 6a8 8 0 0 1 0 12" />
 	</svg>
 {:else if name === 'keyboard-enter'}
 	<svg

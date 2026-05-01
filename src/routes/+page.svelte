@@ -188,11 +188,8 @@
 		isGameLaunchPending = true;
 
 		try {
-			const result = await platformApi.invoke(PLATFORM_COMMANDS.LAUNCH_GAME, undefined);
-
-			if (result.mode === 'embedded') {
-				isEmbeddedGameActive = true;
-			}
+			await platformApi.invoke(PLATFORM_COMMANDS.LAUNCH_GAME, undefined);
+			isEmbeddedGameActive = true;
 		} finally {
 			isGameLaunchPending = false;
 		}
@@ -734,6 +731,10 @@
 	}
 
 	function playMenuSound(audio: HTMLAudioElement | undefined) {
+		if (isEmbeddedGameActive) {
+			return;
+		}
+
 		if (!audio) {
 			return;
 		}
@@ -961,6 +962,10 @@
 	}
 
 	function onKeydown(e: KeyboardEvent) {
+		if (isEmbeddedGameActive) {
+			return;
+		}
+
 		setKeyboardInputMode(gamepad);
 
 		const isTypingInTextInput = isTextInputEventTarget(e.target);
@@ -1016,10 +1021,18 @@
 	}
 
 	function onMouseMove(e: MouseEvent) {
+		if (isEmbeddedGameActive) {
+			return;
+		}
+
 		setKeyboardInputMode(gamepad);
 	}
 
 	function onMouseUp(e: MouseEvent) {
+		if (isEmbeddedGameActive) {
+			return;
+		}
+
 		setKeyboardInputMode(gamepad);
 
 		if (e.button === 2) {
@@ -1111,13 +1124,29 @@
 		}
 
 		const controllerTick = createControllerTick(gamepad, {
-			moveLeft,
-			moveRight,
-			moveUp,
-			moveDown,
-			enterSelected: () => enterSelected(),
-			goBack,
+			moveLeft: () => {
+				if (!isEmbeddedGameActive) moveLeft();
+			},
+			moveRight: () => {
+				if (!isEmbeddedGameActive) moveRight();
+			},
+			moveUp: () => {
+				if (!isEmbeddedGameActive) moveUp();
+			},
+			moveDown: () => {
+				if (!isEmbeddedGameActive) moveDown();
+			},
+			enterSelected: () => {
+				if (!isEmbeddedGameActive) enterSelected();
+			},
+			goBack: () => {
+				if (!isEmbeddedGameActive) goBack();
+			},
 			deleteText: () => {
+				if (isEmbeddedGameActive) {
+					return;
+				}
+
 				if (isShaderCacheConfirmOpen) {
 					shaderCacheConfirmDialog?.goBack();
 					return;
@@ -1133,6 +1162,10 @@
 				}
 			},
 			confirmText: () => {
+				if (isEmbeddedGameActive) {
+					return;
+				}
+
 				if (isLauncherInfoModalOpen) {
 					closeLauncherInfoModal();
 					return;
@@ -1163,6 +1196,10 @@
 				}
 			},
 			insertSpace: () => {
+				if (isEmbeddedGameActive) {
+					return;
+				}
+
 				if (activeInputDropdown) {
 					playEnterSound();
 					activeInputDropdown.onInput(`${activeInputDropdown.value} `);
@@ -1174,6 +1211,10 @@
 				}
 			},
 			clearText: () => {
+				if (isEmbeddedGameActive) {
+					return;
+				}
+
 				if (activeInputDropdown) {
 					playEnterSound();
 					activeInputDropdown.onInput('');
@@ -1189,7 +1230,6 @@
 					return;
 				}
 
-				playEnterSound();
 				void platformApi.invoke(PLATFORM_COMMANDS.SET_GAME_OVERLAY_OPEN, { open: true });
 			}
 		});
@@ -1391,7 +1431,7 @@
 			<div
 				class="rounded-[28px] border border-[#f2e4b6]/18 bg-[radial-gradient(circle_at_50%_0%,rgba(242,228,182,0.13),transparent_48%),rgba(6,6,5,0.86)] px-10 py-9 shadow-[0_26px_80px_rgba(0,0,0,0.54)]"
 			>
-				<AppLoading statusKey="splash.launchingGame" compact />
+				<AppLoading titleKey="splash.prepareGameTitle" statusKey="splash.launchingGame" compact />
 			</div>
 		</div>
 	{/if}

@@ -19,6 +19,8 @@ internal static class Program
     private const int RelatedProcessDiscoveryIntervalMs = 250;
     private const int EmbeddedWindowDiscoveryTimeoutMs = 15000;
     private const int EmbeddedWindowResizeIntervalMs = 100;
+    private const int GamepadOverlayTogglePollIntervalMs = 80;
+    private const int SwRestore = 9;
     private const int GwlStyle = -16;
     private const long WsChild = 0x40000000L;
     private const long WsPopup = 0x80000000L;
@@ -30,6 +32,9 @@ internal static class Program
     private static readonly IntPtr HwndTop = IntPtr.Zero;
     private const uint SwpFrameChanged = 0x0020;
     private const uint SwpShowWindow = 0x0040;
+    private const uint ErrorSuccess = 0;
+    private const ushort XInputGamepadLeftThumb = 0x0040;
+    private const ushort XInputGamepadRightThumb = 0x0080;
 
     private static readonly HashSet<string> CommonIgnoredExecutableNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -821,6 +826,27 @@ internal static class Program
     [DllImport("user32.dll")]
     private static extern IntPtr SetFocus(IntPtr hWnd);
 
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool BringWindowToTop(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr hWnd);
+
+    [DllImport("xinput1_4.dll", EntryPoint = "XInputGetState")]
+    private static extern uint XInputGetState(uint dwUserIndex, out XInputState state);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct NativeRect
     {
@@ -828,6 +854,56 @@ internal static class Program
         public int Top;
         public int Right;
         public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct XInputState
+    {
+        public uint PacketNumber;
+        public XInputGamepad Gamepad;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct XInputGamepad
+    {
+        public ushort Buttons;
+        public byte LeftTrigger;
+        public byte RightTrigger;
+        public short ThumbLX;
+        public short ThumbLY;
+        public short ThumbRX;
+        public short ThumbRY;
+    }
+
+    private static bool IsGamepadOverlayTogglePressed()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return false;
+        }
+
+        try
+        {
+            for (uint userIndex = 0; userIndex < 4; userIndex++)
+            {
+                if (XInputGetState(userIndex, out var state) != ErrorSuccess)
+                {
+                    continue;
+                }
+
+                var buttons = state.Gamepad.Buttons;
+                if ((buttons & XInputGamepadLeftThumb) != 0 && (buttons & XInputGamepadRightThumb) != 0)
+                {
+                    return true;
+                }
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        return false;
     }
 
     private sealed class HostCommandServer : IDisposable
@@ -840,6 +916,7 @@ internal static class Program
         private IntPtr activeEmbeddedParentWindowHandle;
         private IntPtr activeEmbeddedWindowHandle;
         private bool relaunchUiAfterGame;
+        private bool exitHostAfterGame;
         private TcpListener? listener;
         private bool disposed;
 
@@ -857,6 +934,12 @@ internal static class Program
         {
             lock (gameSessionLock)
             {
+                if (exitHostAfterGame)
+                {
+                    relaunchUiAfterGame = false;
+                    return null;
+                }
+
                 if (!relaunchUiAfterGame || activeGameTask is null)
                 {
                     return null;
@@ -984,10 +1067,29 @@ internal static class Program
                     return;
                 }
 
+                if (string.Equals(command, "exit-host-after-game", StringComparison.OrdinalIgnoreCase))
+                {
+                    await HandleExitHostAfterGameCommand(writer, cancellationToken);
+                    return;
+                }
+
                 if (string.Equals(command, "toggle-game-pause", StringComparison.OrdinalIgnoreCase))
                 {
-                    GamePauseController.Create().TogglePause(GetActiveEmbeddedWindowHandle());
+                    GamePauseController.Create().TogglePause(GetActiveGameWindowHandle());
                     await WriteProtocolLine(writer, "ok", cancellationToken);
+                    return;
+                }
+
+                if (string.Equals(command, "focus-game-window", StringComparison.OrdinalIgnoreCase))
+                {
+                    FocusActiveGameWindow();
+                    await WriteProtocolLine(writer, "ok", cancellationToken);
+                    return;
+                }
+
+                if (string.Equals(command, "is-game-window-active", StringComparison.OrdinalIgnoreCase))
+                {
+                    await WriteProtocolLine(writer, IsActiveGameWindowForeground() ? "true" : "false", cancellationToken);
                     return;
                 }
 
@@ -1030,6 +1132,10 @@ internal static class Program
                 return;
             }
 
+            using var writerLock = new SemaphoreSlim(1, 1);
+            using var overlayToggleCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            var overlayToggleTask = Task.CompletedTask;
+
             try
             {
                 output.WriteHostLine("Starting Bloodborne launch task.");
@@ -1060,25 +1166,56 @@ internal static class Program
                 if (firstCompletedTask == gameTask)
                 {
                     await gameTask;
-                    await WriteProtocolLine(writer, "error:shadPS4 closed before startup completed.", cancellationToken);
+                    await TryWriteProtocolLineLocked("error:shadPS4 closed before startup completed.", cancellationToken);
                     return;
                 }
 
-                await TryWriteProtocolLine(writer, $"started:{await startSignal.Task}", cancellationToken);
+                await TryWriteProtocolLineLocked($"started:{await startSignal.Task}", cancellationToken);
+
+                overlayToggleTask = WatchGamepadOverlayToggleAsync(
+                    TryWriteProtocolLineLocked,
+                    IsActiveGameWindowForeground,
+                    overlayToggleCancellation.Token
+                );
 
                 var exitCode = await gameTask;
 
-                await TryWriteProtocolLine(writer, $"exited:{exitCode}", cancellationToken);
+                overlayToggleCancellation.Cancel();
+                await IgnoreCancellation(overlayToggleTask);
+                await TryWriteProtocolLineLocked($"exited:{exitCode}", cancellationToken);
             }
             catch (Exception exception)
             {
                 output.WriteHostLine($"Launch-game command failed: {exception}");
-                await TryWriteProtocolLine(writer, $"error:{SanitizeProtocolMessage(exception.Message)}", cancellationToken);
+                await TryWriteProtocolLineLocked($"error:{SanitizeProtocolMessage(exception.Message)}", cancellationToken);
             }
             finally
             {
+                overlayToggleCancellation.Cancel();
+                await IgnoreCancellation(overlayToggleTask);
                 ClearActiveGameSession();
                 gameLaunchLock.Release();
+            }
+
+            async Task<bool> TryWriteProtocolLineLocked(string message, CancellationToken token)
+            {
+                try
+                {
+                    await writerLock.WaitAsync(token);
+                }
+                catch
+                {
+                    return false;
+                }
+
+                try
+                {
+                    return await TryWriteProtocolLine(writer, message, token);
+                }
+                finally
+                {
+                    writerLock.Release();
+                }
             }
         }
 
@@ -1093,6 +1230,24 @@ internal static class Program
             }
 
             StopGame(session.LaunchConfig, session.Process, session.StartedAt, output);
+            await WriteProtocolLine(writer, "ok", cancellationToken);
+        }
+
+        private async Task HandleExitHostAfterGameCommand(StreamWriter writer, CancellationToken cancellationToken)
+        {
+            lock (gameSessionLock)
+            {
+                exitHostAfterGame = true;
+                relaunchUiAfterGame = false;
+            }
+
+            var session = GetActiveGameSession();
+
+            if (session is not null)
+            {
+                StopGame(session.LaunchConfig, session.Process, session.StartedAt, output);
+            }
+
             await WriteProtocolLine(writer, "ok", cancellationToken);
         }
 
@@ -1111,6 +1266,47 @@ internal static class Program
             catch
             {
                 return false;
+            }
+        }
+
+        private static async Task WatchGamepadOverlayToggleAsync(
+            Func<string, CancellationToken, Task<bool>> writeProtocolLine,
+            Func<bool> canOpenOverlay,
+            CancellationToken cancellationToken
+        )
+        {
+            var isToggleHeld = IsGamepadOverlayTogglePressed();
+
+            try
+            {
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    var isTogglePressed = IsGamepadOverlayTogglePressed();
+
+                    if (isTogglePressed && !isToggleHeld && canOpenOverlay())
+                    {
+                        await writeProtocolLine("overlay-toggle", cancellationToken);
+                    }
+
+                    isToggleHeld = isTogglePressed;
+                    await Task.Delay(GamepadOverlayTogglePollIntervalMs, cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the game session ends.
+            }
+        }
+
+        private static async Task IgnoreCancellation(Task task)
+        {
+            try
+            {
+                await task;
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the game session ends.
             }
         }
 
@@ -1177,12 +1373,83 @@ internal static class Program
             SetEmbeddedWindowOverlayVisibility(embeddedWindowHandle, parentWindowHandle, visible);
         }
 
-        private IntPtr GetActiveEmbeddedWindowHandle()
+        private IntPtr GetActiveGameWindowHandle()
         {
+            GameSession? session;
+            IntPtr embeddedWindowHandle;
+
             lock (gameSessionLock)
             {
-                return activeEmbeddedWindowHandle;
+                session = activeGameSession;
+                embeddedWindowHandle = activeEmbeddedWindowHandle;
             }
+
+            if (embeddedWindowHandle != IntPtr.Zero)
+            {
+                return embeddedWindowHandle;
+            }
+
+            if (session is null)
+            {
+                return IntPtr.Zero;
+            }
+
+            try
+            {
+                session.Process.Refresh();
+
+                return session.Process.HasExited
+                    ? IntPtr.Zero
+                    : session.Process.MainWindowHandle;
+            }
+            catch
+            {
+                return IntPtr.Zero;
+            }
+        }
+
+        private void FocusActiveGameWindow()
+        {
+            var windowHandle = GetActiveGameWindowHandle();
+
+            if (windowHandle == IntPtr.Zero || !IsWindow(windowHandle))
+            {
+                return;
+            }
+
+            if (IsIconic(windowHandle))
+            {
+                _ = ShowWindow(windowHandle, SwRestore);
+            }
+
+            _ = BringWindowToTop(windowHandle);
+            _ = SetForegroundWindow(windowHandle);
+            _ = SetFocus(windowHandle);
+        }
+
+        private bool IsActiveGameWindowForeground()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return GetActiveGameSession() is not null;
+            }
+
+            var foregroundWindowHandle = GetForegroundWindow();
+            if (foregroundWindowHandle == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            var gameWindowHandle = GetActiveGameWindowHandle();
+            if (gameWindowHandle != IntPtr.Zero && foregroundWindowHandle == gameWindowHandle)
+            {
+                return true;
+            }
+
+            _ = GetWindowThreadProcessId(foregroundWindowHandle, out var foregroundProcessId);
+            var session = GetActiveGameSession();
+
+            return session is not null && foregroundProcessId == session.Process.Id;
         }
 
         private void MarkUiRelaunchAfterGame(Task<int> gameTask)

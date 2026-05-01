@@ -45,6 +45,8 @@ export const trTree = {
     splash: {
         eyebrow: 'LanternLauncher',
         title: 'Launcher hazırlanıyor',
+        prepareGameTitle: 'Oyun hazırlanıyor',
+        exitingGameTitle: 'Oyundan çıkılıyor',
         loadingConfig: 'Yapılandırma denetleniyor',
         checkingSettings: 'Ayarlar denetleniyor',
         checkingShadps4Availability: 'shadPS4 denetleniyor',
@@ -78,12 +80,28 @@ export const trTree = {
         unexpectedError: 'Beklenmeyen bir hata oluştu.'
     },
     gameOverlay: {
+        focus: 'Odak',
+        home: 'Ana Menü',
+        music: 'Müzik',
         resume: 'Devam Et',
+        settings: 'Ayarlar',
+        volume: 'Ses',
         exit: 'Çık',
         menuPrompt: 'Menü',
         openHintPrefix: 'Overlay aç',
         selectPrompt: 'Seç',
-        backPrompt: 'Geri'
+        backPrompt: 'Geri',
+        exitDialog: {
+            eyebrow: 'Oyun Oturumu',
+            title: 'Bloodborne kapatılsın mı?',
+            description: 'Bloodborne kapatıldıktan sonra LanternLauncher akışının nereye döneceğini seç.',
+            resumeGame: 'Oyuna Dön',
+            resumeGameDescription: 'Bu menüyü kapat ve Bloodborne oynamaya devam et.',
+            returnToLauncher: "Launcher'a Dön",
+            returnToLauncherDescription: "Bloodborne'u kapat ve LanternLauncher'a geri dön.",
+            exitToDesktop: 'Masaüstüne Çık',
+            exitToDesktopDescription: "Bloodborne'u kapat ve LanternLauncher host'unu sonlandır."
+        }
     },
     menu: {
         main: {

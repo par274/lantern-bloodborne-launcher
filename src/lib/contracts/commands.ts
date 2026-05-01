@@ -13,7 +13,6 @@ export const PLATFORM_COMMANDS = {
     STOP_GAME: 'launcher:stop-game',
     TOGGLE_GAME_PAUSE: 'launcher:toggle-game-pause',
     SET_GAME_OVERLAY_OPEN: 'launcher:set-game-overlay-open',
-    SET_EMBEDDED_GAME_OVERLAY_VISIBLE: 'launcher:set-embedded-game-overlay-visible',
     READ_CLIPBOARD_TEXT: 'clipboard:read-text',
     RENDERER_SCENE_READY: 'app:renderer-scene-ready',
     GET_LAUNCHER_BOOTSTRAP_STATE: 'app:get-launcher-bootstrap-state',
@@ -121,7 +120,7 @@ export interface DeleteShadps4ShaderCacheResult {
 }
 
 export interface LaunchGameResult {
-    mode: 'embedded' | 'standalone';
+    mode: 'standalone';
 }
 
 export interface PlatformCommandMap {
@@ -148,13 +147,7 @@ export interface PlatformCommandMap {
     [PLATFORM_COMMANDS.SET_GAME_OVERLAY_OPEN]: {
         payload: {
             open: boolean;
-        };
-        result: void;
-    };
-
-    [PLATFORM_COMMANDS.SET_EMBEDDED_GAME_OVERLAY_VISIBLE]: {
-        payload: {
-            visible: boolean;
+            focusDelayMs?: number;
         };
         result: void;
     };

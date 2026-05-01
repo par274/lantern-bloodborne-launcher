@@ -121,6 +121,23 @@ export function setDetectedControllerInputMode(state: GamepadState) {
 	}
 }
 
+export function setForcedControllerInputMode(state: GamepadState, inputMode: ControllerInputMode) {
+	state.inputMode = inputMode;
+	state.isXboxControllerConnected = inputMode === 'xbox';
+	state.isDualSenseControllerConnected = inputMode === 'dualsense';
+}
+
+export function forceControllerInputMode(state: GamepadState): boolean {
+	updateInputPrompts(state);
+
+	if (!state.isXboxControllerConnected && !state.isDualSenseControllerConnected) {
+		return false;
+	}
+
+	setDetectedControllerInputMode(state);
+	return state.inputMode !== 'keyboard';
+}
+
 function getActiveController(): Gamepad | null {
 	const pads = navigator.getGamepads?.() ?? [];
 

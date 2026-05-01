@@ -46,6 +46,8 @@ export const enTree = {
     splash: {
         eyebrow: 'LanternLauncher',
         title: 'Preparing launcher',
+        prepareGameTitle: 'Prepare Game',
+        exitingGameTitle: 'Exiting Game',
         loadingConfig: 'Checking launcher configuration',
         checkingSettings: 'Checking settings',
         checkingShadps4Availability: 'Checking shadPS4',
@@ -79,12 +81,28 @@ export const enTree = {
         unexpectedError: 'An unexpected error occurred.'
     },
     gameOverlay: {
+        focus: 'Focus',
+        home: 'Home',
+        music: 'Music',
         resume: 'Resume',
+        settings: 'Settings',
+        volume: 'Volume',
         exit: 'Exit',
         menuPrompt: 'Menu',
         openHintPrefix: 'Open overlay',
         selectPrompt: 'Select',
-        backPrompt: 'Back'
+        backPrompt: 'Back',
+        exitDialog: {
+            eyebrow: 'Game Session',
+            title: 'Exit Bloodborne?',
+            description: 'Choose where LanternLauncher should return after closing the running game.',
+            resumeGame: 'Return to Game',
+            resumeGameDescription: 'Close this menu and continue Bloodborne.',
+            returnToLauncher: 'Return to Launcher',
+            returnToLauncherDescription: 'Close Bloodborne and bring LanternLauncher back.',
+            exitToDesktop: 'Exit to Desktop',
+            exitToDesktopDescription: 'Close Bloodborne and shut down LanternLauncher.'
+        }
     },
     menu: {
         main: {

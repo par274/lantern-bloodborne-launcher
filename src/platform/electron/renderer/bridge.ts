@@ -3,6 +3,7 @@ import type { PlatformCommand, PlatformCommandPayload, PlatformCommandResult } f
 export type ElectronGameEvent =
     | {
             type: 'overlay-opened';
+            inputMode?: 'xbox' | 'dualsense';
       }
     | {
             type: 'overlay-closed';

@@ -6,12 +6,14 @@
 	type SplashTranslationKey = Extract<TranslationKey, `splash.${string}`>;
 
 	let {
+		titleKey = 'splash.title',
 		statusKey,
 		progress = null,
 		showSpinner = true,
 		compact = false,
 		children
 	}: {
+		titleKey?: SplashTranslationKey;
 		statusKey: SplashTranslationKey;
 		progress?: number | null;
 		showSpinner?: boolean;
@@ -36,7 +38,7 @@
 			></div>
 		{/if}
 		<h1 class="m-0 text-base font-semibold tracking-[0.12em]">
-			{$t('splash.title')}
+			{$t(titleKey)}
 		</h1>
 		<p class={`m-0 text-[0.78rem] tracking-[0.12em] text-[#f2e4b6]/70 ${compact ? 'max-w-[16rem]' : 'max-w-[26rem]'}`}>
 			{$t(statusKey)}

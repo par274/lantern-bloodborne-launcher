@@ -9,7 +9,7 @@ import { getLauncherBootstrapState } from '../config/launcherConfig';
 import { defineElectronCommand } from '../defineElectronCommand';
 import {
     closeGameOverlayWindowAfterGameEnd,
-    setGameOverlayHostWindow,
+    preloadGameOverlayWindow,
     showGameOverlayHint,
     toggleGameOverlayWindow
 } from '../gameOverlayWindow';
@@ -23,29 +23,13 @@ import {
 const GAME_EVENT_CHANNEL = 'game:event';
 
 let activeFallbackGameProcess: ChildProcess | null = null;
-let activeEmbeddedGameSocket: import('node:net').Socket | null = null;
-let activeHostLaunchPromise: Promise<{ mode: 'embedded' | 'standalone' }> | null = null;
+let activeHostGameSocket: import('node:net').Socket | null = null;
+let activeHostLaunchPromise: Promise<{ mode: 'standalone' }> | null = null;
 let unregisterHostLineHandler: (() => void) | null = null;
 let isGameShortcutRegistered = false;
 
 function getLauncherWindows(): BrowserWindow[] {
     return BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed());
-}
-
-function getGameHostWindow(): BrowserWindow {
-    const windows = getLauncherWindows();
-    const focusedWindow = BrowserWindow.getFocusedWindow();
-
-    if (focusedWindow && windows.includes(focusedWindow)) {
-        return focusedWindow;
-    }
-
-    const window = windows.at(-1);
-    if (!window) {
-        throw new Error('Lantern launcher window is not available.');
-    }
-
-    return window;
 }
 
 function hideLauncherWindows(): void {
@@ -95,20 +79,15 @@ function unregisterGameShortcut(): void {
     isGameShortcutRegistered = false;
 }
 
-function readNativeWindowHandle(window: BrowserWindow): string {
-    const handle = window.getNativeWindowHandle();
-
-    return handle.length >= 8 ? handle.readBigUInt64LE(0).toString() : BigInt(handle.readUInt32LE(0)).toString();
-}
-
-function clearEmbeddedGameSession(exitCode: number | null = null): void {
+function clearHostGameSession(exitCode: number | null = null): void {
     unregisterHostLineHandler?.();
     unregisterHostLineHandler = null;
-    activeEmbeddedGameSocket?.destroy();
-    activeEmbeddedGameSocket = null;
+    activeHostGameSocket?.destroy();
+    activeHostGameSocket = null;
     unregisterGameShortcut();
     closeGameOverlayWindowAfterGameEnd();
     sendGameEvent({ type: 'session-ended', exitCode });
+    showLauncherWindows();
 }
 
 function clearActiveFallbackGameProcess(processRef?: ChildProcess): void {
@@ -136,19 +115,11 @@ async function waitForProcessSpawn(processRef: ChildProcess): Promise<void> {
     });
 }
 
-async function launchEmbeddedGameViaHost(): Promise<{ mode: 'embedded' }> {
-    if (activeEmbeddedGameSocket && !activeEmbeddedGameSocket.destroyed) {
-        return { mode: 'embedded' };
+async function launchGameViaHost(): Promise<{ mode: 'standalone' }> {
+    if (activeHostGameSocket && !activeHostGameSocket.destroyed) {
+        return { mode: 'standalone' };
     }
 
-    if (process.platform !== 'win32') {
-        throw new Error('Embedded game mode is only available on Windows.');
-    }
-
-    const hostWindow = getGameHostWindow();
-    setGameOverlayHostWindow(hostWindow);
-
-    const hostWindowHandle = readNativeWindowHandle(hostWindow);
     const socket = await connectHostCommandSocket();
 
     let didStart = false;
@@ -168,7 +139,14 @@ async function launchEmbeddedGameViaHost(): Promise<{ mode: 'embedded' }> {
                     if (line.startsWith('exited:')) {
                         didExit = true;
                         const exitCode = Number.parseInt(line.slice('exited:'.length), 10);
-                        clearEmbeddedGameSession(Number.isFinite(exitCode) ? exitCode : null);
+                        clearHostGameSession(Number.isFinite(exitCode) ? exitCode : null);
+                        return;
+                    }
+
+                    if (line === 'overlay-toggle') {
+                        void toggleGameOverlayWindow('xbox').catch((error) => {
+                            console.warn('Game overlay toggle failed.', error);
+                        });
                         return;
                     }
 
@@ -176,7 +154,7 @@ async function launchEmbeddedGameViaHost(): Promise<{ mode: 'embedded' }> {
                         const error = new Error(line.slice('error:'.length));
 
                         if (didStart) {
-                            clearEmbeddedGameSession(null);
+                            clearHostGameSession(null);
                             return;
                         }
 
@@ -185,7 +163,7 @@ async function launchEmbeddedGameViaHost(): Promise<{ mode: 'embedded' }> {
                 },
                 (error) => {
                     if (didStart) {
-                        clearEmbeddedGameSession(null);
+                        clearHostGameSession(null);
                         return;
                     }
 
@@ -194,24 +172,27 @@ async function launchEmbeddedGameViaHost(): Promise<{ mode: 'embedded' }> {
             );
         });
 
-        await writeHostCommand(socket, 'launch-game-embedded', [hostWindowHandle]);
+        await writeHostCommand(socket, 'launch-game');
         await started;
 
         if (didExit || socket.destroyed) {
-            throw new Error('shadPS4 closed before embedded game mode became active.');
+            throw new Error('shadPS4 closed before game mode became active.');
         }
 
-        activeEmbeddedGameSocket = socket;
+        activeHostGameSocket = socket;
+        hideLauncherWindows();
         registerGameShortcut();
+        await preloadGameOverlayWindow();
         void showGameOverlayHint().catch((error) => {
             console.warn('Game overlay hint could not be shown.', error);
         });
 
-        return { mode: 'embedded' };
+        return { mode: 'standalone' };
     } catch (error) {
         unregisterHostLineHandler?.();
         unregisterHostLineHandler = null;
         socket.destroy();
+        showLauncherWindows();
         throw error;
     }
 }
@@ -244,17 +225,29 @@ async function launchGameDirectlyForDevelopment(): Promise<{ mode: 'standalone' 
 
     processRef.once('exit', () => {
         clearActiveFallbackGameProcess(processRef);
+        unregisterGameShortcut();
+        closeGameOverlayWindowAfterGameEnd();
+        sendGameEvent({ type: 'session-ended', exitCode: processRef.exitCode });
         showLauncherWindows();
     });
 
     processRef.once('error', () => {
         clearActiveFallbackGameProcess(processRef);
+        unregisterGameShortcut();
+        closeGameOverlayWindowAfterGameEnd();
+        sendGameEvent({ type: 'session-ended', exitCode: null });
         showLauncherWindows();
     });
 
     await waitForProcessSpawn(processRef);
 
     hideLauncherWindows();
+    registerGameShortcut();
+    await preloadGameOverlayWindow();
+    void showGameOverlayHint().catch((error) => {
+        console.warn('Game overlay hint could not be shown.', error);
+    });
+
     return { mode: 'standalone' };
 }
 
@@ -263,13 +256,13 @@ export default defineElectronCommand(PLATFORM_COMMANDS.LAUNCH_GAME, async () => 
         return activeHostLaunchPromise;
     }
 
-    const canUseEmbeddedHost = process.platform === 'win32' && canUseHostCommandChannel();
+    const canUseHost = canUseHostCommandChannel();
 
-    if (!canUseEmbeddedHost) {
+    if (!canUseHost) {
         return launchGameDirectlyForDevelopment();
     }
 
-    activeHostLaunchPromise = launchEmbeddedGameViaHost().finally(() => {
+    activeHostLaunchPromise = launchGameViaHost().finally(() => {
         activeHostLaunchPromise = null;
     });
 
