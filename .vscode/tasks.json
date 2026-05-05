@@ -10,7 +10,7 @@
             },
             "args": [
                 "run",
-                "dev"
+                "dev:native"
             ],
             "group": "test",
             "problemMatcher": [],
@@ -86,24 +86,6 @@
             "args": [
                 "run",
                 "dist:portable"
-            ],
-            "group": "build",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            }
-        },
-        {
-            "label": "Build Installer",
-            "type": "process",
-            "command": "npm",
-            "windows": {
-                "command": "npm.cmd"
-            },
-            "args": [
-                "run",
-                "dist:installer"
             ],
             "group": "build",
             "problemMatcher": [],
