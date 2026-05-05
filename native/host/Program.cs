@@ -14,6 +14,9 @@ internal static class Program
     private const string LauncherConfigFileName = "config.json";
     private const string HostPortEnvironmentName = "LANTERN_HOST_PORT";
     private const string HostTokenEnvironmentName = "LANTERN_HOST_TOKEN";
+    private const string NativeDevEnvironmentName = "LANTERN_NATIVE_DEV";
+    private const string DevElectronPathEnvironmentName = "LANTERN_DEV_ELECTRON_PATH";
+    private const string DevAppPathEnvironmentName = "LANTERN_DEV_APP_PATH";
     private const string SingleInstanceMutexName = "LanternLauncher.Host.SingleInstance";
     private const int RelatedProcessDiscoveryTimeoutMs = 4000;
     private const int RelatedProcessDiscoveryIntervalMs = 250;
@@ -119,13 +122,18 @@ internal static class Program
 
     private static async Task<int> LaunchElectronAppShell(string[] args, NativeHostOutput output)
     {
+        var isNativeDevMode = IsNativeDevMode();
         var launcherDirectory = AppContext.BaseDirectory;
-        var appDirectory = Path.Combine(launcherDirectory, ResolveNestedAppDirectoryName());
-        var innerExecutablePath = ResolveInnerExecutablePath(appDirectory);
+        var appDirectory = isNativeDevMode
+            ? ResolveDevAppDirectory()
+            : Path.Combine(launcherDirectory, ResolveNestedAppDirectoryName());
+        var innerExecutablePath = isNativeDevMode
+            ? ResolveDevElectronExecutablePath()
+            : ResolveInnerExecutablePath(appDirectory);
 
         if (innerExecutablePath is null)
         {
-            throw new FileNotFoundException("The embedded launcher files could not be found in the app0 folder.");
+            throw new FileNotFoundException("The launcher executable could not be resolved.");
         }
 
         using var commandServer = new HostCommandServer(output);
@@ -138,7 +146,7 @@ internal static class Program
         {
             while (true)
             {
-                var startInfo = CreateElectronStartInfo(innerExecutablePath, appDirectory, args, commandServer);
+                var startInfo = CreateElectronStartInfo(innerExecutablePath, appDirectory, args, commandServer, isNativeDevMode);
                 using var process = Process.Start(startInfo);
 
                 if (process is null)
@@ -194,7 +202,8 @@ internal static class Program
         string innerExecutablePath,
         string appDirectory,
         string[] args,
-        HostCommandServer commandServer
+        HostCommandServer commandServer,
+        bool isNativeDevMode
     )
     {
         var startInfo = new ProcessStartInfo
@@ -207,12 +216,51 @@ internal static class Program
         startInfo.Environment[HostPortEnvironmentName] = commandServer.Port.ToString();
         startInfo.Environment[HostTokenEnvironmentName] = commandServer.Token;
 
+        if (isNativeDevMode)
+        {
+            startInfo.ArgumentList.Add(appDirectory);
+        }
+
         foreach (var arg in args)
         {
             startInfo.ArgumentList.Add(arg);
         }
 
         return startInfo;
+    }
+
+    private static bool IsNativeDevMode()
+    {
+        var value = Environment.GetEnvironmentVariable(NativeDevEnvironmentName);
+
+        return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ResolveDevAppDirectory()
+    {
+        var appPath = Environment.GetEnvironmentVariable(DevAppPathEnvironmentName);
+
+        return Path.GetFullPath(string.IsNullOrWhiteSpace(appPath) ? Directory.GetCurrentDirectory() : appPath);
+    }
+
+    private static string ResolveDevElectronExecutablePath()
+    {
+        var electronPath = Environment.GetEnvironmentVariable(DevElectronPathEnvironmentName);
+
+        if (string.IsNullOrWhiteSpace(electronPath))
+        {
+            throw new InvalidOperationException($"{DevElectronPathEnvironmentName} is required in native dev mode.");
+        }
+
+        electronPath = Path.GetFullPath(electronPath);
+
+        if (!File.Exists(electronPath))
+        {
+            throw new FileNotFoundException("Electron executable was not found for native dev mode.", electronPath);
+        }
+
+        return electronPath;
     }
 
     private static string ResolveNestedAppDirectoryName()

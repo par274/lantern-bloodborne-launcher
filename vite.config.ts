@@ -1,18 +1,117 @@
+import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
+
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig, type PluginOption } from 'vite';
 import electron, { type ElectronOptions } from 'vite-plugin-electron';
+
 import { resolveAppEnvironment } from './app.environment.js';
 
-function startElectron(startup: () => Promise<void> | void): void {
+let nativeHostProcess: ChildProcess | null = null;
+let isStoppingNativeHost = false;
+
+function isNativeDevMode(): boolean {
+    return process.env.LANTERN_NATIVE_DEV === '1' || process.env.LANTERN_NATIVE_DEV === 'true';
+}
+
+function createProcessEnv(extraEnv: Record<string, string>): NodeJS.ProcessEnv {
+    return Object.fromEntries(
+        Object.entries({
+            ...process.env,
+            ...extraEnv
+        }).filter(([, value]) => typeof value === 'string')
+    ) as NodeJS.ProcessEnv;
+}
+
+function resolveElectronExecutablePath(): string {
+    if (process.platform === 'win32') {
+        return path.resolve('node_modules', 'electron', 'dist', 'electron.exe');
+    }
+
+    if (process.platform === 'darwin') {
+        return path.resolve('node_modules', 'electron', 'dist', 'Electron.app', 'Contents', 'MacOS', 'Electron');
+    }
+
+    return path.resolve('node_modules', 'electron', 'dist', 'electron');
+}
+
+function stopNativeHost(): void {
+    if (!nativeHostProcess || nativeHostProcess.killed) {
+        return;
+    }
+
+    isStoppingNativeHost = true;
+    nativeHostProcess.kill();
+    nativeHostProcess = null;
+}
+
+function startNativeHost(): void {
+    if (nativeHostProcess && !nativeHostProcess.killed) {
+        return;
+    }
+
+    isStoppingNativeHost = false;
+    const dotnetHomePath = path.resolve('.build', 'dotnet', 'home');
+    const dotnetNugetPath = path.resolve('.build', 'dotnet', 'nuget');
+
+    nativeHostProcess = spawn(
+        'dotnet',
+        ['run', '--project', 'native/host/LanternLauncherHost.csproj', '--configuration', 'Debug'],
+        {
+            env: createProcessEnv({
+                AVALONIA_TELEMETRY_OPTOUT: '1',
+                DOTNET_CLI_HOME: dotnetHomePath,
+                LANTERN_DEV_APP_PATH: process.cwd(),
+                LANTERN_DEV_ELECTRON_PATH: resolveElectronExecutablePath(),
+                LANTERN_NATIVE_DEV: '1',
+                NUGET_PACKAGES: dotnetNugetPath
+            }),
+            stdio: 'inherit'
+        }
+    );
+
+    nativeHostProcess.once('error', (error) => {
+        console.error(`Native host could not be started: ${error.message}`);
+        nativeHostProcess = null;
+    });
+
+    nativeHostProcess.once('exit', (code, signal) => {
+        nativeHostProcess = null;
+
+        if (!isNativeDevMode() || isStoppingNativeHost) {
+            return;
+        }
+
+        process.exit(code ?? (signal ? 1 : 0));
+    });
+}
+
+function startElectronMain(startup: () => Promise<void> | void): void {
     delete process.env.ELECTRON_RUN_AS_NODE;
+
+    if (isNativeDevMode()) {
+        startNativeHost();
+        return;
+    }
+
     void startup();
 }
 
-function reloadElectronRenderer(reload: () => void): void {
+function startElectronPreload(reload: () => void): void {
+    if (isNativeDevMode()) {
+        startNativeHost();
+        return;
+    }
+
     void reload();
 }
+
+process.once('exit', stopNativeHost);
+process.once('SIGINT', () => {
+    stopNativeHost();
+    process.exit(130);
+});
 
 export default defineConfig(({ command }) => {
     const appEnvironment = resolveAppEnvironment();
@@ -30,7 +129,7 @@ export default defineConfig(({ command }) => {
                 entry: 'src/platform/electron/main.ts',
                 onstart: isDev
                     ? ({ startup }) => {
-                        startElectron(startup);
+                        startElectronMain(startup);
                     }
                     : undefined,
                 vite: {
@@ -49,7 +148,7 @@ export default defineConfig(({ command }) => {
                 entry: 'src/platform/electron/preload.ts',
                 onstart: isDev
                     ? ({ reload }) => {
-                        reloadElectronRenderer(reload);
+                        startElectronPreload(reload);
                     }
                     : undefined,
                 vite: {

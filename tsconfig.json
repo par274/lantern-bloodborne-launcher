@@ -16,6 +16,7 @@
     },
     "include": [
         "*.d.ts",
+        "native/**/*.ts",
         "src/**/*.d.ts",
         "src/**/*.ts",
         "src/**/*.svelte",

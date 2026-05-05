@@ -5,6 +5,26 @@ import type { PlatformCommand, PlatformCommandPayload, PlatformCommandResult } f
 import type { ElectronGameEvent, ElectronRendererBridge } from '../renderer/bridge';
 
 const GAME_EVENT_CHANNEL = 'game:event';
+const MAX_QUEUED_GAME_EVENTS = 10;
+
+const gameEventHandlers = new Set<(event: ElectronGameEvent) => void>();
+const queuedGameEvents: ElectronGameEvent[] = [];
+
+ipcRenderer.on(GAME_EVENT_CHANNEL, (_event: IpcRendererEvent, payload: ElectronGameEvent) => {
+    if (gameEventHandlers.size === 0) {
+        queuedGameEvents.push(payload);
+
+        if (queuedGameEvents.length > MAX_QUEUED_GAME_EVENTS) {
+            queuedGameEvents.shift();
+        }
+
+        return;
+    }
+
+    for (const handler of gameEventHandlers) {
+        handler(payload);
+    }
+});
 
 function invoke<T extends PlatformCommand>(
     command: T,
@@ -16,14 +36,14 @@ function invoke<T extends PlatformCommand>(
 export const electronAPI: ElectronRendererBridge = {
     invoke,
     onGameEvent(handler) {
-        const listener = (_event: IpcRendererEvent, payload: ElectronGameEvent) => {
-            handler(payload);
-        };
+        gameEventHandlers.add(handler);
 
-        ipcRenderer.on(GAME_EVENT_CHANNEL, listener);
+        for (const event of queuedGameEvents.splice(0)) {
+            handler(event);
+        }
 
         return () => {
-            ipcRenderer.removeListener(GAME_EVENT_CHANNEL, listener);
+            gameEventHandlers.delete(handler);
         };
     }
 };
