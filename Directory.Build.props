@@ -1,0 +1,8 @@
+<Project>
+    <PropertyGroup Condition="'$(MSBuildProjectName)' == 'LanternLauncherHost'">
+        <BaseOutputPath>$(MSBuildThisFileDirectory).build\dotnet\native-host\bin\</BaseOutputPath>
+        <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory).build\dotnet\native-host\obj\</BaseIntermediateOutputPath>
+        <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
+        <RestorePackagesPath>$(MSBuildThisFileDirectory).build\dotnet\nuget\packages\</RestorePackagesPath>
+    </PropertyGroup>
+</Project>
